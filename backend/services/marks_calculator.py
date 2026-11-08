@@ -131,13 +131,13 @@ def validate_test_data(
                 f"Sum of subject marks ({subjects_total}) differs from total marks obtained ({test_data.marks_obtained})."
             )
             
-        # 3. Check question counts
+        # 3. Check question counts if entered
         for sub in test_data.subjects:
-            if sub.attempted != (sub.correct + sub.incorrect):
+            if sub.attempted > 0 and sub.attempted != (sub.correct + sub.incorrect):
                 warnings.append(
                     f"{sub.subject}: Attempted count ({sub.attempted}) != Correct ({sub.correct}) + Incorrect ({sub.incorrect})."
                 )
-            if sub.total_questions != (sub.attempted + sub.unattempted):
+            if sub.total_questions > 0 and sub.attempted > 0 and sub.total_questions != (sub.attempted + sub.unattempted):
                 warnings.append(
                     f"{sub.subject}: Total questions ({sub.total_questions}) != Attempted ({sub.attempted}) + Unattempted ({sub.unattempted})."
                 )

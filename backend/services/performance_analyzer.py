@@ -18,8 +18,12 @@ def compute_and_save_test_analysis(test: models.Test, db: Session):
     total_marks = sum(s.total_marks for s in subject_results) if subject_results else test.marks_obtained
 
     test.marks_obtained = total_marks
-    test.attempt_rate = round((total_attempted / total_q * 100), 2) if total_q > 0 else 0.0
-    test.overall_accuracy = round((total_correct / total_attempted * 100), 2) if total_attempted > 0 else 0.0
+    if total_attempted > 0:
+        test.attempt_rate = round((total_attempted / total_q * 100), 2) if total_q > 0 else 0.0
+        test.overall_accuracy = round((total_correct / total_attempted * 100), 2)
+    else:
+        test.overall_accuracy = round((total_marks / test.max_marks * 100), 2) if test.max_marks > 0 else 0.0
+        test.attempt_rate = 100.0 if total_marks > 0 else 0.0
 
     # 2. Compute Chapter Performance from Question Results
     db.query(models.ChapterPerformance).filter(models.ChapterPerformance.test_id == test.id).delete()
@@ -69,6 +73,26 @@ def compute_and_save_test_analysis(test: models.Test, db: Session):
                 incorrect=data["incorrect"],
                 unattempted=data["unattempted"],
                 marks=data["marks"],
+                accuracy=acc,
+                classification=classification
+            )
+            db.add(chap_perf)
+    elif subject_results:
+        # Fallback for manual mark entries (e.g. HSC or manual JEE entries)
+        for s in subject_results:
+            acc = s.accuracy if s.accuracy > 0 else (s.percentage if s.percentage > 0 else round((s.total_marks / 100.0) * 100, 2))
+            classification = classify_accuracy(acc)
+            chap_perf = models.ChapterPerformance(
+                test_id=test.id,
+                subject=s.subject,
+                chapter_name=f"{s.subject} Overall Syllabus",
+                unit_category=f"{s.subject} Core",
+                total_questions=s.total_questions or 25,
+                attempted=s.attempted or (s.total_questions or 25),
+                correct=s.correct or int((acc / 100.0) * (s.total_questions or 25)),
+                incorrect=s.incorrect or 0,
+                unattempted=s.unattempted or 0,
+                marks=s.total_marks,
                 accuracy=acc,
                 classification=classification
             )

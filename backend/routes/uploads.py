@@ -85,13 +85,17 @@ def confirm_and_save_test(
     is_valid, warnings = validate_test_data(test_in)
 
     # Calculate overall accuracy & attempt rate
-    total_q = test_in.total_questions or 75
+    total_q = test_in.total_questions or sum(s.total_questions for s in test_in.subjects) or 75
     total_att = sum(s.attempted for s in test_in.subjects) if test_in.subjects else 0
     total_corr = sum(s.correct for s in test_in.subjects) if test_in.subjects else 0
     total_marks = sum(s.total_marks for s in test_in.subjects) if test_in.subjects else test_in.marks_obtained
 
-    overall_acc = round((total_corr / total_att * 100), 2) if total_att > 0 else 0.0
-    attempt_rate = round((total_att / total_q * 100), 2) if total_q > 0 else 0.0
+    if total_att > 0:
+        overall_acc = round((total_corr / total_att * 100), 2)
+        attempt_rate = round((total_att / total_q * 100), 2)
+    else:
+        overall_acc = round((total_marks / test_in.max_marks * 100), 2) if test_in.max_marks > 0 else 0.0
+        attempt_rate = 100.0 if total_marks > 0 else 0.0
 
     # 2. Create Test record
     db_test = models.Test(
