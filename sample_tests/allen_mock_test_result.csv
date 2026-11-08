@@ -1,0 +1,76 @@
+Question Number,Subject,Chapter,Question Type,Difficulty,Selected Answer,Correct Answer,Status,Marks,Time (seconds)
+1,Physics,Laws of Motion,MCQ,Medium,B,B,Correct,4.0,123
+2,Physics,"Work, Energy and Power",MCQ,Medium,B,B,Correct,4.0,126
+3,Physics,Rotational Motion,MCQ,Medium,B,B,Correct,4.0,129
+4,Physics,Thermodynamics,MCQ,Medium,B,A,Incorrect,-1.0,132
+5,Physics,Current Electricity,MCQ,Medium,B,B,Correct,4.0,135
+6,Physics,Optics,MCQ,Medium,B,B,Correct,4.0,138
+7,Physics,Modern Physics,MCQ,Medium,B,B,Correct,4.0,141
+8,Physics,Kinematics,MCQ,Medium,,A,Unattempted,0.0,144
+9,Physics,Laws of Motion,MCQ,Medium,B,B,Correct,4.0,147
+10,Physics,"Work, Energy and Power",MCQ,Medium,B,B,Correct,4.0,150
+11,Physics,Rotational Motion,MCQ,Medium,B,B,Correct,4.0,153
+12,Physics,Thermodynamics,MCQ,Medium,B,A,Incorrect,-1.0,156
+13,Physics,Current Electricity,MCQ,Medium,B,B,Correct,4.0,159
+14,Physics,Optics,MCQ,Medium,B,B,Correct,4.0,162
+15,Physics,Modern Physics,MCQ,Medium,B,B,Correct,4.0,165
+16,Physics,Kinematics,MCQ,Medium,,A,Unattempted,0.0,168
+17,Physics,Laws of Motion,MCQ,Medium,B,B,Correct,4.0,171
+18,Physics,"Work, Energy and Power",MCQ,Medium,B,B,Correct,4.0,174
+19,Physics,Rotational Motion,MCQ,Medium,B,B,Correct,4.0,177
+20,Physics,Thermodynamics,MCQ,Medium,B,A,Incorrect,-1.0,180
+21,Physics,Current Electricity,Numerical,Medium,B,B,Correct,4.0,183
+22,Physics,Optics,Numerical,Medium,B,B,Correct,4.0,186
+23,Physics,Modern Physics,Numerical,Medium,B,B,Correct,4.0,189
+24,Physics,Kinematics,Numerical,Medium,,A,Unattempted,0.0,192
+25,Physics,Laws of Motion,Numerical,Medium,B,B,Correct,4.0,195
+26,Chemistry,Chemical Kinetics,MCQ,Easy,A,A,Correct,4.0,142
+27,Chemistry,General Organic Chemistry,MCQ,Medium,A,A,Correct,4.0,144
+28,Chemistry,Coordination Compounds,MCQ,Easy,A,A,Correct,4.0,146
+29,Chemistry,Solutions,MCQ,Medium,A,A,Correct,4.0,148
+30,Chemistry,Chemical Bonding,MCQ,Easy,,C,Unattempted,0.0,150
+31,Chemistry,Thermodynamics,MCQ,Medium,A,A,Correct,4.0,152
+32,Chemistry,Chemical Kinetics,MCQ,Easy,A,A,Correct,4.0,154
+33,Chemistry,General Organic Chemistry,MCQ,Medium,A,A,Correct,4.0,156
+34,Chemistry,Coordination Compounds,MCQ,Easy,A,A,Correct,4.0,158
+35,Chemistry,Solutions,MCQ,Medium,A,C,Incorrect,-1.0,160
+36,Chemistry,Chemical Bonding,MCQ,Easy,A,A,Correct,4.0,162
+37,Chemistry,Thermodynamics,MCQ,Medium,A,A,Correct,4.0,164
+38,Chemistry,Chemical Kinetics,MCQ,Easy,A,A,Correct,4.0,166
+39,Chemistry,General Organic Chemistry,MCQ,Medium,A,A,Correct,4.0,168
+40,Chemistry,Coordination Compounds,MCQ,Easy,,C,Unattempted,0.0,170
+41,Chemistry,Solutions,MCQ,Medium,A,A,Correct,4.0,172
+42,Chemistry,Chemical Bonding,MCQ,Easy,A,A,Correct,4.0,174
+43,Chemistry,Thermodynamics,MCQ,Medium,A,A,Correct,4.0,176
+44,Chemistry,Chemical Kinetics,MCQ,Easy,A,A,Correct,4.0,178
+45,Chemistry,General Organic Chemistry,MCQ,Medium,A,C,Incorrect,-1.0,180
+46,Chemistry,Coordination Compounds,Numerical,Easy,A,A,Correct,4.0,182
+47,Chemistry,Solutions,Numerical,Medium,A,A,Correct,4.0,184
+48,Chemistry,Chemical Bonding,Numerical,Easy,A,A,Correct,4.0,186
+49,Chemistry,Thermodynamics,Numerical,Medium,A,A,Correct,4.0,188
+50,Chemistry,Chemical Kinetics,Numerical,Easy,,C,Unattempted,0.0,190
+51,Mathematics,Differential Equations,MCQ,Medium,C,D,Incorrect,-1.0,262
+52,Mathematics,Vectors and 3D Geometry,MCQ,Hard,C,C,Correct,4.0,264
+53,Mathematics,Complex Numbers,MCQ,Medium,C,C,Correct,4.0,266
+54,Mathematics,Matrices and Determinants,MCQ,Hard,,D,Unattempted,0.0,268
+55,Mathematics,Sequence and Series,MCQ,Medium,C,C,Correct,4.0,270
+56,Mathematics,Integral Calculus,MCQ,Hard,C,C,Correct,4.0,272
+57,Mathematics,Differential Equations,MCQ,Medium,C,D,Incorrect,-1.0,274
+58,Mathematics,Vectors and 3D Geometry,MCQ,Hard,C,C,Correct,4.0,276
+59,Mathematics,Complex Numbers,MCQ,Medium,C,C,Correct,4.0,278
+60,Mathematics,Matrices and Determinants,MCQ,Hard,,D,Unattempted,0.0,280
+61,Mathematics,Sequence and Series,MCQ,Medium,C,C,Correct,4.0,282
+62,Mathematics,Integral Calculus,MCQ,Hard,C,C,Correct,4.0,284
+63,Mathematics,Differential Equations,MCQ,Medium,C,D,Incorrect,-1.0,286
+64,Mathematics,Vectors and 3D Geometry,MCQ,Hard,C,C,Correct,4.0,288
+65,Mathematics,Complex Numbers,MCQ,Medium,C,C,Correct,4.0,290
+66,Mathematics,Matrices and Determinants,MCQ,Hard,,D,Unattempted,0.0,292
+67,Mathematics,Sequence and Series,MCQ,Medium,C,C,Correct,4.0,294
+68,Mathematics,Integral Calculus,MCQ,Hard,C,C,Correct,4.0,296
+69,Mathematics,Differential Equations,MCQ,Medium,C,D,Incorrect,-1.0,298
+70,Mathematics,Vectors and 3D Geometry,MCQ,Hard,C,C,Correct,4.0,300
+71,Mathematics,Complex Numbers,Numerical,Medium,C,C,Correct,4.0,302
+72,Mathematics,Matrices and Determinants,Numerical,Hard,,D,Unattempted,0.0,304
+73,Mathematics,Sequence and Series,Numerical,Medium,C,C,Correct,4.0,306
+74,Mathematics,Integral Calculus,Numerical,Hard,C,C,Correct,4.0,308
+75,Mathematics,Differential Equations,Numerical,Medium,C,D,Incorrect,-1.0,310
