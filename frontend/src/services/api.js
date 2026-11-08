@@ -45,6 +45,10 @@ export const authAPI = {
 export const dashboardAPI = {
   getOverview: () => api.get('/analysis/dashboard'),
   getWeakTopics: () => api.get('/analysis/weak-topics'),
+  getReminders: () => api.get('/analysis/reminders'),
+  addReminder: (data) => api.post('/analysis/reminders', data),
+  deleteReminder: (id) => api.delete(`/analysis/reminders/${id}`),
+  toggleReminder: (id) => api.put(`/analysis/reminders/${id}/toggle`),
 };
 
 export const testsAPI = {

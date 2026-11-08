@@ -13,15 +13,26 @@ import {
   Calendar,
   Filter,
   Layers,
-  BookOpen
+  BookOpen,
+  GraduationCap,
+  Flame,
+  CheckSquare
 } from 'lucide-react';
 import { testsAPI } from '../services/api';
+
+const EXAM_TYPES = [
+  { id: 'All', label: 'All Examinations', badge: 'All Tests' },
+  { id: 'JEE Main', label: 'JEE Main (300 Marks)', badge: 'Objective +4/-1' },
+  { id: 'JEE Advanced', label: 'JEE Advanced (Paper 1 & 2)', badge: 'Multi-Concept Rigor' },
+  { id: 'Board Exam Class 12th', label: 'Board Exam Class 12th', badge: 'Theory & Step-Marking' },
+];
 
 const TestAnalysis = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const testIdParam = searchParams.get('test_id');
 
   const [tests, setTests] = useState([]);
+  const [selectedExamType, setSelectedExamType] = useState('All');
   const [selectedTestId, setSelectedTestId] = useState(testIdParam || '');
   const [testDetail, setTestDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -67,10 +78,24 @@ const TestAnalysis = () => {
     }
   };
 
+  const handleSelectExamType = (type) => {
+    setSelectedExamType(type);
+    const filtered = tests.filter(t => type === 'All' || t.test_type === type);
+    if (filtered.length > 0) {
+      setSelectedTestId(filtered[0].id);
+      setSearchParams({ test_id: filtered[0].id });
+    }
+  };
+
   const handleSelectTest = (id) => {
     setSelectedTestId(id);
     setSearchParams({ test_id: id });
   };
+
+  const filteredTests = tests.filter(t => {
+    if (selectedExamType === 'All') return true;
+    return t.test_type === selectedExamType;
+  });
 
   const questions = testDetail?.question_results || [];
   const filteredQuestions = questions.filter(q => {
@@ -81,32 +106,71 @@ const TestAnalysis = () => {
   });
 
   const ai = testDetail?.ai_recommendation;
+  const currentExamType = testDetail?.test_type || 'JEE Main';
 
   return (
     <div className="space-y-6">
-      {/* Top Bar with Test Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Test Performance Deep Dive</h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Detailed breakdown, question logs, marking penalties, and AI diagnostic report
-          </p>
-        </div>
+      {/* Top Header */}
+      <div>
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Test Performance Deep Dive</h1>
+        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+          Comprehensive diagnostic analysis tailored for <strong className="text-indigo-600">JEE Main</strong>, <strong className="text-purple-600">JEE Advanced</strong>, and <strong className="text-emerald-600">Class 12th Board Examinations</strong>.
+        </p>
+      </div>
 
-        {/* Test Selector Dropdown */}
+      {/* Exam Category Switcher Tabs */}
+      <div className="bg-white rounded-2xl p-2 border border-slate-200/80 shadow-xs flex flex-wrap gap-1.5">
+        {EXAM_TYPES.map((et) => {
+          const isSelected = selectedExamType === et.id;
+          return (
+            <button
+              key={et.id}
+              onClick={() => handleSelectExamType(et.id)}
+              className={`flex-1 min-w-[140px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                isSelected
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <span>{et.label}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                isSelected ? 'bg-indigo-500/50 text-white' : 'bg-slate-100 text-slate-500'
+              }`}>
+                {et.badge}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Test Selector and Exam Context Badge */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
         <div className="flex items-center gap-2">
-          <label className="text-xs font-semibold text-slate-600">Selected Test:</label>
+          <label className="text-xs font-bold text-slate-700">Select Test to Analyze:</label>
           <select
             value={selectedTestId}
             onChange={(e) => handleSelectTest(e.target.value)}
-            className="px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none shadow-xs"
+            className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
           >
-            {tests.map(t => (
+            {filteredTests.map(t => (
               <option key={t.id} value={t.id}>
-                {t.test_name} ({t.test_date}) - {t.marks_obtained} M
+                [{t.test_type}] {t.test_name} ({t.test_date}) - {t.marks_obtained} M
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Current Exam Mode Indicator */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-500 font-medium">Exam Standard:</span>
+          <span className={`px-2.5 py-1 rounded-xl text-xs font-extrabold flex items-center gap-1.5 ${
+            currentExamType === 'JEE Advanced' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
+            currentExamType === 'Board Exam Class 12th' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+            'bg-indigo-50 text-indigo-700 border border-indigo-200'
+          }`}>
+            <GraduationCap className="w-3.5 h-3.5" />
+            {currentExamType}
+          </span>
         </div>
       </div>
 
@@ -116,6 +180,29 @@ const TestAnalysis = () => {
         </div>
       ) : testDetail ? (
         <>
+          {/* Exam Context Specific Advisory Pill */}
+          <div className={`p-4 rounded-2xl border flex items-start gap-3 shadow-xs ${
+            currentExamType === 'JEE Advanced' ? 'bg-purple-50/60 border-purple-200 text-purple-950' :
+            currentExamType === 'Board Exam Class 12th' ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950' :
+            'bg-indigo-50/60 border-indigo-200 text-indigo-950'
+          }`}>
+            <Sparkles className="w-5 h-5 shrink-0 mt-0.5 text-indigo-600" />
+            <div className="text-xs space-y-0.5">
+              <strong className="font-bold block text-sm">
+                {currentExamType === 'JEE Advanced' ? 'JEE Advanced Analytical Focus Mode' :
+                 currentExamType === 'Board Exam Class 12th' ? 'Class 12th Board Exam Theory & Step-Marking Mode' :
+                 'JEE Main Standard Diagnostic Mode'}
+              </strong>
+              <p className="leading-relaxed text-slate-700">
+                {currentExamType === 'JEE Advanced'
+                  ? 'Evaluates multi-correct options, numerical matrix bounds, partial marking discipline, and high-difficulty conceptual problem solving for IIT admissions.'
+                  : currentExamType === 'Board Exam Class 12th'
+                  ? 'Evaluates NCERT syllabus completeness, conceptual definitions, formula derivations, and step-wise scoring precision aiming for 90%+ aggregate.'
+                  : 'Evaluates speed, question selection accuracy, negative marking containment (-1 penalty), and projected NTA percentiles out of 300 marks.'}
+              </p>
+            </div>
+          </div>
+
           {/* Test Header Overview Banner */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
@@ -135,7 +222,7 @@ const TestAnalysis = () => {
                   </span>
                   {testDetail.official_percentile && (
                     <span className="font-semibold text-violet-700">
-                      Percentile: {testDetail.official_percentile}%ile
+                      Score: {testDetail.official_percentile}%ile
                     </span>
                   )}
                   {testDetail.official_rank && (
@@ -149,7 +236,7 @@ const TestAnalysis = () => {
               {/* Score Metric Big Pill */}
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <p className="text-xs font-semibold text-slate-400">Total Score</p>
+                  <p className="text-xs font-semibold text-slate-400">Total Marks Obtained</p>
                   <p className="text-3xl sm:text-4xl font-extrabold text-indigo-600 tracking-tight">
                     {testDetail.marks_obtained}
                     <span className="text-sm font-semibold text-slate-400 ml-1">/ {testDetail.max_marks}</span>
@@ -168,7 +255,7 @@ const TestAnalysis = () => {
                 <div key={sub.subject} className="bg-slate-50 rounded-xl p-4 border border-slate-200/80">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-slate-900 text-sm">{sub.subject}</span>
-                    <span className="text-base font-extrabold text-indigo-700">{sub.total_marks} M</span>
+                    <span className="text-base font-extrabold text-indigo-700">{sub.total_marks} Marks</span>
                   </div>
                   <div className="grid grid-cols-3 gap-1 text-[11px] text-center my-2">
                     <div className="p-1 rounded bg-emerald-100/60 text-emerald-800 font-bold">
@@ -190,17 +277,17 @@ const TestAnalysis = () => {
             </div>
           </div>
 
-          {/* AI-Powered 12-Section Diagnostic Report */}
+          {/* AI-Powered Diagnostic Report */}
           {ai && (
             <div className="bg-white rounded-2xl p-6 border border-indigo-100 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-indigo-100/50 to-transparent rounded-full -mr-20 -mt-20 pointer-events-none" />
-
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-base font-extrabold text-slate-900">AI-Powered Diagnostic Test Report</h2>
+                  <h2 className="text-base font-extrabold text-slate-900">
+                    AI Diagnostic Report ({currentExamType})
+                  </h2>
                   <p className="text-xs text-slate-500">Personalized data-backed findings and recommendations</p>
                 </div>
               </div>
@@ -214,7 +301,9 @@ const TestAnalysis = () => {
 
                 {/* 2. Negative Marking Analysis */}
                 <div className="p-4 rounded-xl bg-rose-50/70 border border-rose-200 space-y-1">
-                  <p className="font-bold text-rose-800 uppercase tracking-wider text-[10px]">2. Negative Marking Impact</p>
+                  <p className="font-bold text-rose-800 uppercase tracking-wider text-[10px]">
+                    {currentExamType === 'Board Exam Class 12th' ? '2. Marks Conceded & Step-Deductions' : '2. Negative Marking Penalty'}
+                  </p>
                   <p className="text-rose-950 leading-relaxed">{ai.negative_marking_analysis}</p>
                 </div>
 
@@ -241,20 +330,6 @@ const TestAnalysis = () => {
                   <p className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">6. Previous Test Comparison</p>
                   <p className="text-slate-800 leading-relaxed">{ai.comparison_with_previous}</p>
                 </div>
-              </div>
-
-              {/* 7-Day Plan Preview Pill */}
-              <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Targeted 7-Day Action Plan Generated</p>
-                  <p className="text-xs text-slate-200 mt-0.5">Automated revision schedule mapped to your error logs.</p>
-                </div>
-                <a
-                  href="/study-planner"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-semibold text-white whitespace-nowrap self-start sm:self-center"
-                >
-                  View Full Study Plan →
-                </a>
               </div>
             </div>
           )}
@@ -371,7 +446,7 @@ const TestAnalysis = () => {
         </>
       ) : (
         <div className="text-center py-12 text-slate-500 text-sm">
-          No test selected. Upload a test or select one from the dropdown above.
+          No test found for {selectedExamType}. Select another examination type or upload a new test.
         </div>
       )}
     </div>

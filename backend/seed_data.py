@@ -14,8 +14,9 @@ def seed():
         # Check if demo user already exists
         user = db.query(models.User).filter(models.User.email == "demo@jeemain.ai").first()
         if user:
-            print("Demo user already exists. Skipping seed.")
-            return
+            print("Refreshing demo student tests & reminders...")
+            db.delete(user)
+            db.commit()
 
         print("Seeding demo JEE student user and realistic mock test history...")
 
@@ -96,9 +97,9 @@ def seed():
         # Test 3: 184 / 300 (98.42 percentile)
         tests_data = [
             {
-                "name": "Diagnostic Mock Test 01",
+                "name": "JEE Main Diagnostic Mock 01",
                 "date": "2025-10-12",
-                "type": "Mock Test",
+                "type": "JEE Main",
                 "shift": "Morning",
                 "percentile": 92.15,
                 "rank": 98400,
@@ -107,12 +108,13 @@ def seed():
                 "math_acc": 0.50,
                 "phy_att": 17,
                 "chem_att": 20,
-                "math_att": 14
+                "math_att": 14,
+                "max_marks": 300.0
             },
             {
                 "name": "Allen JEE Main Major 02",
                 "date": "2025-10-26",
-                "type": "Mock Test",
+                "type": "JEE Main",
                 "shift": "Evening",
                 "percentile": 95.80,
                 "rank": 52100,
@@ -121,12 +123,13 @@ def seed():
                 "math_acc": 0.58,
                 "phy_att": 19,
                 "chem_att": 21,
-                "math_att": 15
+                "math_att": 15,
+                "max_marks": 300.0
             },
             {
                 "name": "NTA Full Syllabus Simulation 03",
                 "date": "2025-11-05",
-                "type": "Mock Test",
+                "type": "JEE Main",
                 "shift": "Morning",
                 "percentile": 98.42,
                 "rank": 19800,
@@ -135,7 +138,38 @@ def seed():
                 "math_acc": 0.68,
                 "phy_att": 21,
                 "chem_att": 22,
-                "math_att": 17
+                "math_att": 17,
+                "max_marks": 300.0
+            },
+            {
+                "name": "JEE Advanced All India Simulation 01",
+                "date": "2025-11-15",
+                "type": "JEE Advanced",
+                "shift": "Paper 1 & Paper 2",
+                "percentile": 99.10,
+                "rank": 4820,
+                "phy_acc": 0.72,
+                "chem_acc": 0.76,
+                "math_acc": 0.62,
+                "phy_att": 18,
+                "chem_att": 19,
+                "math_att": 15,
+                "max_marks": 360.0
+            },
+            {
+                "name": "CBSE Class 12 Pre-Board Exam 01",
+                "date": "2025-12-02",
+                "type": "Board Exam Class 12th",
+                "shift": "Annual Theory",
+                "percentile": 96.50,
+                "rank": None,
+                "phy_acc": 0.88,
+                "chem_acc": 0.92,
+                "math_acc": 0.84,
+                "phy_att": 24,
+                "chem_att": 24,
+                "math_att": 23,
+                "max_marks": 220.0
             }
         ]
 
@@ -149,7 +183,7 @@ def seed():
                 shift=td["shift"],
                 duration_minutes=180,
                 total_questions=75,
-                max_marks=300.0,
+                max_marks=td.get("max_marks", 300.0),
                 official_percentile=td["percentile"],
                 official_rank=td["rank"]
             )
@@ -293,7 +327,28 @@ def seed():
             compute_and_save_test_analysis(test, db)
             generate_ai_recommendation_report(test.id, db)
 
-        print("Successfully seeded 3 realistic JEE Main mock tests and demo account!")
+        # Seed initial Weak Topic Reminders
+        reminders_data = [
+            ("Physics", "Rotational Motion", -8.0, "Conceded negative marking in rolling without slipping torque balance", "JEE Main"),
+            ("Chemistry", "Coordination Compounds", -4.0, "Splitting of d-orbitals in octahedral vs tetrahedral fields", "JEE Advanced"),
+            ("Mathematics", "Differential Equations", -5.0, "Missed integrating factor in linear first order form", "Board Exam Class 12th"),
+            ("Physics", "Current Electricity", -4.0, "Meter bridge and potentiometer circuit sensitivity derivations", "Board Exam Class 12th"),
+            ("Mathematics", "Integral Calculus", -6.0, "Definite integral periodicity and King's property errors", "JEE Advanced")
+        ]
+        for sub, chap, ml, notes, et in reminders_data:
+            rem = models.WeakTopicReminder(
+                user_id=user.id,
+                subject=sub,
+                chapter_name=chap,
+                marks_lost=ml,
+                notes=notes,
+                exam_type=et,
+                is_resolved=False
+            )
+            db.add(rem)
+        db.commit()
+
+        print("Successfully seeded realistic JEE Main, JEE Advanced, Board Class 12th tests & weak topic reminders!")
 
     finally:
         db.close()

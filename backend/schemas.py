@@ -282,3 +282,26 @@ class ComparisonOut(BaseModel):
     deltas: Dict[str, Any]
     primary_contributor: str
     metrics_comparison: List[Dict[str, Any]]
+
+# --- Weak Topic Reminder Schemas ---
+class WeakTopicReminderCreate(BaseModel):
+    subject: str
+    chapter_name: str
+    marks_lost: float = 0.0
+    notes: Optional[str] = None
+    exam_type: str = "JEE Main"
+
+class WeakTopicReminderOut(BaseModel):
+    id: int
+    user_id: int
+    subject: str
+    chapter_name: str
+    marks_lost: float
+    notes: Optional[str] = None
+    exam_type: str
+    is_resolved: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+

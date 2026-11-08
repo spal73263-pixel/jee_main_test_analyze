@@ -245,3 +245,71 @@ def get_weak_topics_analysis(
         "weakest_chapter": weakest_chap,
         "total_weak_chapters": len(weak)
     }
+
+# --- Weak Topic Reminder Endpoints ---
+@router.get("/reminders", response_model=List[schemas.WeakTopicReminderOut])
+def get_weak_topic_reminders(
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return (
+        db.query(models.WeakTopicReminder)
+        .filter(models.WeakTopicReminder.user_id == user.id)
+        .order_by(models.WeakTopicReminder.created_at.desc())
+        .all()
+    )
+
+@router.post("/reminders", response_model=schemas.WeakTopicReminderOut)
+def create_weak_topic_reminder(
+    reminder_in: schemas.WeakTopicReminderCreate,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    reminder = models.WeakTopicReminder(
+        user_id=user.id,
+        subject=reminder_in.subject,
+        chapter_name=reminder_in.chapter_name,
+        marks_lost=reminder_in.marks_lost,
+        notes=reminder_in.notes,
+        exam_type=reminder_in.exam_type
+    )
+    db.add(reminder)
+    db.commit()
+    db.refresh(reminder)
+    return reminder
+
+@router.delete("/reminders/{reminder_id}")
+def delete_weak_topic_reminder(
+    reminder_id: int,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    rem = (
+        db.query(models.WeakTopicReminder)
+        .filter(models.WeakTopicReminder.id == reminder_id, models.WeakTopicReminder.user_id == user.id)
+        .first()
+    )
+    if not rem:
+        raise HTTPException(status_code=404, detail="Reminder not found.")
+    db.delete(rem)
+    db.commit()
+    return {"message": "Reminder deleted successfully."}
+
+@router.put("/reminders/{reminder_id}/toggle")
+def toggle_weak_topic_reminder(
+    reminder_id: int,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    rem = (
+        db.query(models.WeakTopicReminder)
+        .filter(models.WeakTopicReminder.id == reminder_id, models.WeakTopicReminder.user_id == user.id)
+        .first()
+    )
+    if not rem:
+        raise HTTPException(status_code=404, detail="Reminder not found.")
+    rem.is_resolved = not rem.is_resolved
+    db.commit()
+    db.refresh(rem)
+    return rem
+

@@ -18,6 +18,7 @@ class User(Base):
     tests = relationship("Test", back_populates="user", cascade="all, delete-orphan")
     study_plans = relationship("StudyPlan", back_populates="user", cascade="all, delete-orphan")
     ai_recommendations = relationship("AIRecommendation", back_populates="user", cascade="all, delete-orphan")
+    weak_topic_reminders = relationship("WeakTopicReminder", back_populates="user", cascade="all, delete-orphan")
 
 
 class StudentProfile(Base):
@@ -183,3 +184,20 @@ class AIRecommendation(Base):
 
     user = relationship("User", back_populates="ai_recommendations")
     test = relationship("Test", back_populates="ai_recommendation")
+
+
+class WeakTopicReminder(Base):
+    __tablename__ = "weak_topic_reminders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    subject = Column(String(50), nullable=False)
+    chapter_name = Column(String(100), nullable=False)
+    marks_lost = Column(Float, default=0.0)
+    notes = Column(Text, nullable=True)
+    exam_type = Column(String(50), default="JEE Main")  # JEE Main, JEE Advanced, Board Exam Class 12th
+    is_resolved = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="weak_topic_reminders")
+

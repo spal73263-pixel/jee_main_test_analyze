@@ -10,8 +10,6 @@ import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import UploadTest from './pages/UploadTest';
 import TestAnalysis from './pages/TestAnalysis';
-import SubjectAnalysis from './pages/SubjectAnalysis';
-import ChapterAnalysis from './pages/ChapterAnalysis';
 import WeakTopics from './pages/WeakTopics';
 import TimeManagement from './pages/TimeManagement';
 import TestComparison from './pages/TestComparison';
@@ -60,8 +58,8 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="upload" element={<UploadTest />} />
             <Route path="test-analysis" element={<TestAnalysis />} />
-            <Route path="subjects" element={<SubjectAnalysis />} />
-            <Route path="chapters" element={<ChapterAnalysis />} />
+            <Route path="subjects" element={<Navigate to="/test-analysis" replace />} />
+            <Route path="chapters" element={<Navigate to="/weak-topics" replace />} />
             <Route path="weak-topics" element={<WeakTopics />} />
             <Route path="time-management" element={<TimeManagement />} />
             <Route path="compare" element={<TestComparison />} />

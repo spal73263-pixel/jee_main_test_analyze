@@ -303,10 +303,10 @@ const Dashboard = () => {
               <p className="text-xs text-slate-500">Average marks and negative marking loss</p>
             </div>
             <button
-              onClick={() => navigate('/subjects')}
+              onClick={() => navigate('/test-analysis')}
               className="text-xs text-indigo-600 font-semibold hover:underline flex items-center gap-1"
             >
-              <span>Deep Dive</span>
+              <span>Test Analysis</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
