@@ -78,6 +78,12 @@ export const plannerAPI = {
   getPlan: () => api.get('/study-planner'),
   regeneratePlan: () => api.post('/study-planner/generate'),
   toggleTask: (taskId) => api.put(`/study-planner/tasks/${taskId}/toggle`),
+  addTask: (data) => api.post('/study-planner/tasks', data),
+  deleteTask: (taskId) => api.delete(`/study-planner/tasks/${taskId}`),
+  getScheduledTests: () => api.get('/study-planner/tests'),
+  scheduleTest: (data) => api.post('/study-planner/tests', data),
+  deleteScheduledTest: (testId) => api.delete(`/study-planner/tests/${testId}`),
+  toggleScheduledTest: (testId) => api.put(`/study-planner/tests/${testId}/toggle`),
 };
 
 export default api;

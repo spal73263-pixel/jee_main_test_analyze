@@ -213,6 +213,15 @@ class ExtractedDataPreview(BaseModel):
 
 
 # --- Study Planner Schemas ---
+class StudyTaskCreate(BaseModel):
+    day_of_week: str = "Monday"
+    subject: str
+    chapter: str
+    duration_hours: float = 2.0
+    practice_questions: int = 20
+    revision_topics: Optional[str] = None
+    task_description: Optional[str] = None
+
 class StudyTaskOut(BaseModel):
     id: int
     plan_id: int
@@ -236,6 +245,29 @@ class StudyPlanOut(BaseModel):
     is_active: bool
     summary: Optional[str] = None
     tasks: List[StudyTaskOut] = []
+
+    class Config:
+        from_attributes = True
+
+class ScheduledTestCreate(BaseModel):
+    test_title: str
+    exam_type: str = "JEE Main"
+    scheduled_date: str
+    scheduled_time: str = "09:00 AM"
+    duration_minutes: int = 180
+    syllabus_chapters: Optional[str] = "Full Syllabus"
+
+class ScheduledTestOut(BaseModel):
+    id: int
+    user_id: int
+    test_title: str
+    exam_type: str
+    scheduled_date: str
+    scheduled_time: str
+    duration_minutes: int
+    syllabus_chapters: Optional[str] = None
+    is_completed: bool
+    created_at: datetime
 
     class Config:
         from_attributes = True

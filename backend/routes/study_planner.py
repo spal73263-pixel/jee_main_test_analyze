@@ -61,6 +61,128 @@ def toggle_task_completion(
     db.refresh(task)
     return {"id": task.id, "is_completed": task.is_completed}
 
+@router.post("/tasks", response_model=schemas.StudyTaskOut)
+def add_custom_study_task(
+    task_in: schemas.StudyTaskCreate,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    plan = (
+        db.query(models.StudyPlan)
+        .filter(models.StudyPlan.user_id == user.id, models.StudyPlan.is_active == True)
+        .order_by(models.StudyPlan.generated_date.desc())
+        .first()
+    )
+    if not plan:
+        plan = generate_dynamic_plan(user, db)
+
+    duration_mins = int(task_in.duration_hours * 60)
+    desc = task_in.task_description or f"Study {task_in.chapter} ({task_in.duration_hours} hrs) + {task_in.practice_questions} practice questions."
+
+    task = models.StudyTask(
+        plan_id=plan.id,
+        day_of_week=task_in.day_of_week,
+        subject=task_in.subject,
+        chapter=task_in.chapter,
+        task_description=desc,
+        duration_minutes=duration_mins,
+        practice_questions=task_in.practice_questions,
+        revision_topics=task_in.revision_topics or f"Focus on {task_in.chapter} core problems.",
+        is_completed=False
+    )
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+    return task
+
+@router.delete("/tasks/{task_id}")
+def delete_study_task(
+    task_id: int,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    task = (
+        db.query(models.StudyTask)
+        .join(models.StudyPlan)
+        .filter(models.StudyTask.id == task_id, models.StudyPlan.user_id == user.id)
+        .first()
+    )
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    db.delete(task)
+    db.commit()
+    return {"message": "Study task deleted."}
+
+# --- Scheduled Mock Test Reminders Endpoints ---
+@router.get("/tests", response_model=List[schemas.ScheduledTestOut])
+def get_scheduled_tests(
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return (
+        db.query(models.ScheduledTestReminder)
+        .filter(models.ScheduledTestReminder.user_id == user.id)
+        .order_by(models.ScheduledTestReminder.scheduled_date.asc())
+        .all()
+    )
+
+@router.post("/tests", response_model=schemas.ScheduledTestOut)
+def schedule_test_reminder(
+    test_in: schemas.ScheduledTestCreate,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    rem = models.ScheduledTestReminder(
+        user_id=user.id,
+        test_title=test_in.test_title,
+        exam_type=test_in.exam_type,
+        scheduled_date=test_in.scheduled_date,
+        scheduled_time=test_in.scheduled_time,
+        duration_minutes=test_in.duration_minutes,
+        syllabus_chapters=test_in.syllabus_chapters,
+        is_completed=False
+    )
+    db.add(rem)
+    db.commit()
+    db.refresh(rem)
+    return rem
+
+@router.delete("/tests/{test_id}")
+def delete_scheduled_test(
+    test_id: int,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    rem = (
+        db.query(models.ScheduledTestReminder)
+        .filter(models.ScheduledTestReminder.id == test_id, models.ScheduledTestReminder.user_id == user.id)
+        .first()
+    )
+    if not rem:
+        raise HTTPException(status_code=404, detail="Scheduled test not found.")
+    db.delete(rem)
+    db.commit()
+    return {"message": "Scheduled test deleted."}
+
+@router.put("/tests/{test_id}/toggle")
+def toggle_scheduled_test(
+    test_id: int,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    rem = (
+        db.query(models.ScheduledTestReminder)
+        .filter(models.ScheduledTestReminder.id == test_id, models.ScheduledTestReminder.user_id == user.id)
+        .first()
+    )
+    if not rem:
+        raise HTTPException(status_code=404, detail="Scheduled test not found.")
+    rem.is_completed = not rem.is_completed
+    db.commit()
+    db.refresh(rem)
+    return rem
+
+
 def generate_dynamic_plan(user: models.User, db: Session) -> models.StudyPlan:
     # Fetch user weak chapters
     chapters = (

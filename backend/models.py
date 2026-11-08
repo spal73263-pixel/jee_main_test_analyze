@@ -19,6 +19,7 @@ class User(Base):
     study_plans = relationship("StudyPlan", back_populates="user", cascade="all, delete-orphan")
     ai_recommendations = relationship("AIRecommendation", back_populates="user", cascade="all, delete-orphan")
     weak_topic_reminders = relationship("WeakTopicReminder", back_populates="user", cascade="all, delete-orphan")
+    scheduled_test_reminders = relationship("ScheduledTestReminder", back_populates="user", cascade="all, delete-orphan")
 
 
 class StudentProfile(Base):
@@ -200,4 +201,22 @@ class WeakTopicReminder(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="weak_topic_reminders")
+
+
+class ScheduledTestReminder(Base):
+    __tablename__ = "scheduled_test_reminders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    test_title = Column(String(255), nullable=False)
+    exam_type = Column(String(50), default="JEE Main")  # JEE Main, JEE Advanced, Board Exam Class 12th
+    scheduled_date = Column(String(50), nullable=False)  # YYYY-MM-DD
+    scheduled_time = Column(String(50), default="09:00 AM")
+    duration_minutes = Column(Integer, default=180)
+    syllabus_chapters = Column(Text, nullable=True)
+    is_completed = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="scheduled_test_reminders")
+
 
