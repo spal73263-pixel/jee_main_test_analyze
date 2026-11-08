@@ -11,9 +11,7 @@ import Dashboard from './pages/Dashboard';
 import UploadTest from './pages/UploadTest';
 import TestAnalysis from './pages/TestAnalysis';
 import WeakTopics from './pages/WeakTopics';
-import TimeManagement from './pages/TimeManagement';
 import TestComparison from './pages/TestComparison';
-import TargetPredictor from './pages/TargetPredictor';
 import StudyPlanner from './pages/StudyPlanner';
 import TestHistory from './pages/TestHistory';
 import ProfileSettings from './pages/ProfileSettings';
@@ -61,9 +59,7 @@ function App() {
             <Route path="subjects" element={<Navigate to="/test-analysis" replace />} />
             <Route path="chapters" element={<Navigate to="/weak-topics" replace />} />
             <Route path="weak-topics" element={<WeakTopics />} />
-            <Route path="time-management" element={<TimeManagement />} />
             <Route path="compare" element={<TestComparison />} />
-            <Route path="target-predictor" element={<TargetPredictor />} />
             <Route path="study-planner" element={<StudyPlanner />} />
             <Route path="history" element={<TestHistory />} />
             <Route path="profile" element={<ProfileSettings />} />

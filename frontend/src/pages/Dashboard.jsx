@@ -334,10 +334,10 @@ const Dashboard = () => {
               <p className="text-xs text-slate-500">Efficiency and question selection trend</p>
             </div>
             <button
-              onClick={() => navigate('/time-management')}
+              onClick={() => navigate('/test-analysis')}
               className="text-xs text-indigo-600 font-semibold hover:underline flex items-center gap-1"
             >
-              <span>Time Analysis</span>
+              <span>Test Details</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -393,18 +393,18 @@ const Dashboard = () => {
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200/80 rounded-2xl p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700">
-              <Target className="w-5 h-5" />
+              <Calendar className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-indigo-900">JEE Target Predictor</h3>
-              <p className="text-xs text-indigo-700">Track required marks growth pace & milestone forecast</p>
+              <h3 className="text-sm font-bold text-indigo-900">7-Day Study Planner</h3>
+              <p className="text-xs text-indigo-700">Daily targeted recovery roadmap mapped to weak chapters</p>
             </div>
           </div>
           <button
-            onClick={() => navigate('/target-predictor')}
+            onClick={() => navigate('/study-planner')}
             className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs"
           >
-            Open Predictor
+            Open Planner
           </button>
         </div>
       </div>
