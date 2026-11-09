@@ -2,65 +2,25 @@ import React, { useState, useEffect } from 'react';
 import {
   User,
   Mail,
-  Target,
-  Clock,
-  Key,
   Save,
   CheckCircle2,
-  AlertCircle,
-  Sparkles,
-  ShieldCheck
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { authAPI } from '../services/api';
 
 const ProfileSettings = () => {
   const { user, updateUserProfile } = useAuth();
-  const profile = user?.profile || {};
 
-  const [formData, setFormData] = useState({
-    full_name: user?.full_name || 'Om Pal',
-    target_year: 2026,
-    target_attempt: 'January & April',
-    target_percentile: 99.0,
-    target_marks: 220,
-    target_physics_marks: 75,
-    target_chemistry_marks: 80,
-    target_maths_marks: 65,
-    daily_study_hours: 6.5,
-    target_exam_date: '2026-01-24',
-  });
-
+  const [fullName, setFullName] = useState(user?.full_name || 'Om Pal');
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    if (user || (profile && Object.keys(profile).length > 0)) {
-      setFormData({
-        full_name: user?.full_name || 'Om Pal',
-        target_year: profile.target_year || 2026,
-        target_attempt: profile.target_attempt || 'January & April',
-        target_percentile: profile.target_percentile || 99.0,
-        target_marks: profile.target_marks || 220,
-        target_physics_marks: profile.target_physics_marks || 75,
-        target_chemistry_marks: profile.target_chemistry_marks || 80,
-        target_maths_marks: profile.target_maths_marks || 65,
-        daily_study_hours: profile.daily_study_hours || 6.5,
-        target_exam_date: profile.target_exam_date || '2026-01-24',
-      });
+    if (user?.full_name) {
+      setFullName(user.full_name);
     }
-  }, [user, profile]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: ['target_year', 'target_percentile', 'target_marks', 'target_physics_marks', 'target_chemistry_marks', 'target_maths_marks', 'daily_study_hours'].includes(name)
-        ? Number(value)
-        : value
-    }));
-  };
+  }, [user]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -68,8 +28,8 @@ const ProfileSettings = () => {
     setSuccessMsg('');
     setErrorMsg('');
     try {
-      await updateUserProfile(formData);
-      setSuccessMsg('Profile and target settings successfully updated!');
+      await updateUserProfile({ full_name: fullName.trim() });
+      setSuccessMsg('Profile settings successfully updated!');
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
       setErrorMsg(err.response?.data?.detail || 'Failed to update profile settings.');
@@ -82,9 +42,9 @@ const ProfileSettings = () => {
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Student Profile & Goal Settings</h1>
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Profile & Settings</h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Configure your JEE target milestones, attempt preferences, and daily study allocations.
+          Manage your student account details saved on this web page.
         </p>
       </div>
 
@@ -105,7 +65,7 @@ const ProfileSettings = () => {
       {/* Profile Form */}
       <form onSubmit={handleSave} className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-6">
         {/* Personal Details */}
-        <div className="pb-6 border-b border-slate-100">
+        <div>
           <h3 className="text-sm font-bold text-slate-900 mb-3">Student Account Information</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -116,8 +76,8 @@ const ProfileSettings = () => {
                   type="text"
                   name="full_name"
                   required
-                  value={formData.full_name}
-                  onChange={handleChange}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-300 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
@@ -129,144 +89,6 @@ const ProfileSettings = () => {
                 <Mail className="w-4 h-4 text-slate-400" />
                 <span>{user?.email || ''}</span>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* JEE Examination Target Settings */}
-        <div className="pb-6 border-b border-slate-100 space-y-4">
-          <h3 className="text-sm font-bold text-slate-900">Examination Target Parameters</h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Target Year</label>
-              <select
-                name="target_year"
-                value={formData.target_year}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
-              >
-                <option value={2026}>JEE Main 2026</option>
-                <option value={2027}>JEE Main 2027</option>
-                <option value={2028}>JEE Main 2028</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Target Attempt</label>
-              <select
-                name="target_attempt"
-                value={formData.target_attempt}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
-              >
-                <option value="January Attempt">Session 1 (January)</option>
-                <option value="April Attempt">Session 2 (April)</option>
-                <option value="January & April">Both Sessions</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Target Exam Date</label>
-              <input
-                type="date"
-                name="target_exam_date"
-                value={formData.target_exam_date}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Target Score (out of 300)</label>
-              <input
-                type="number"
-                min={80}
-                max={300}
-                name="target_marks"
-                value={formData.target_marks}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Target Percentile Benchmark</label>
-              <input
-                type="number"
-                step="0.05"
-                min={70}
-                max={100}
-                name="target_percentile"
-                value={formData.target_percentile}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Daily Study Hours</label>
-              <input
-                type="number"
-                step="0.5"
-                min={2}
-                max={16}
-                name="daily_study_hours"
-                value={formData.daily_study_hours}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Subject Target Sub-allocations */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-bold text-slate-900">Subject-Wise Marks Allocations</h3>
-          <p className="text-xs text-slate-500">
-            Sum of subject targets should align with your total target ({formData.target_marks} Marks):
-          </p>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-sky-700 mb-1">Physics Target</label>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                name="target_physics_marks"
-                value={formData.target_physics_marks}
-                onChange={handleChange}
-                className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-emerald-700 mb-1">Chemistry Target</label>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                name="target_chemistry_marks"
-                value={formData.target_chemistry_marks}
-                onChange={handleChange}
-                className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-amber-700 mb-1">Maths Target</label>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                name="target_maths_marks"
-                value={formData.target_maths_marks}
-                onChange={handleChange}
-                className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
             </div>
           </div>
         </div>

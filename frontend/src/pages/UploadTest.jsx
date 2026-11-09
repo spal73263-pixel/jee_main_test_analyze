@@ -2,33 +2,20 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   UploadCloud,
-  FileText,
-  CheckCircle2,
   AlertCircle,
   Edit3,
   Save,
-  Download,
   Sparkles,
-  FileSpreadsheet,
-  Image as ImageIcon,
-  ArrowRight,
-  Calculator,
-  Award,
-  Layers,
-  GraduationCap,
-  Calendar,
-  Clock,
-  RotateCcw
+  Calculator
 } from 'lucide-react';
-import { uploadsAPI } from '../services/api';
+import { uploadsAPI, testsAPI } from '../services/api';
 
 const EXAM_PRESETS = {
   'JEE Main': {
     name: 'JEE Main',
     badge: 'Objective +4/-1',
-    description: '300 Marks • Physics, Chemistry, Mathematics (25 questions each)',
+    description: 'Physics, Chemistry, Mathematics (25 questions per subject)',
     defaultDuration: 180,
-    defaultMaxMarks: 300,
     subjects: [
       { subject: 'Physics', defaultMax: 100, total_questions: 25 },
       { subject: 'Chemistry', defaultMax: 100, total_questions: 25 },
@@ -38,28 +25,12 @@ const EXAM_PRESETS = {
   'JEE Advanced': {
     name: 'JEE Advanced',
     badge: 'Multi-Concept Rigor',
-    description: '360 Marks • Physics, Chemistry, Mathematics (Advanced pattern)',
+    description: 'Physics, Chemistry, Mathematics (Advanced pattern)',
     defaultDuration: 180,
-    defaultMaxMarks: 360,
     subjects: [
       { subject: 'Physics', defaultMax: 120, total_questions: 18 },
       { subject: 'Chemistry', defaultMax: 120, total_questions: 18 },
       { subject: 'Mathematics', defaultMax: 120, total_questions: 18 },
-    ]
-  },
-  'Board Exam Class 12th': {
-    name: 'Board Exam Class 12th',
-    badge: 'HSC / Class 12th',
-    description: '600 Marks • Maths, CS 1, CS 2, English, Physics, Chemistry',
-    defaultDuration: 180,
-    defaultMaxMarks: 600,
-    subjects: [
-      { subject: 'Mathematics', defaultMax: 100, total_questions: 30 },
-      { subject: 'Computer Science 1 (CS 1)', defaultMax: 100, total_questions: 25 },
-      { subject: 'Computer Science 2 (CS 2)', defaultMax: 100, total_questions: 25 },
-      { subject: 'English', defaultMax: 100, total_questions: 20 },
-      { subject: 'Physics', defaultMax: 100, total_questions: 30 },
-      { subject: 'Chemistry', defaultMax: 100, total_questions: 30 },
     ]
   }
 };
@@ -72,12 +43,6 @@ const UploadTest = () => {
 
   // --- Manual Entry State ---
   const [selectedExam, setSelectedExam] = useState('JEE Main');
-  const [manualTestName, setManualTestName] = useState('');
-  const [manualDate, setManualDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [manualShift, setManualShift] = useState('Shift 1');
-  const [manualDuration, setManualDuration] = useState('180');
-  const [manualPercentile, setManualPercentile] = useState('');
-  const [manualRank, setManualRank] = useState('');
 
   // Subject marks state initialized based on selected exam
   const [subjectEntries, setSubjectEntries] = useState(() => {
@@ -108,9 +73,6 @@ const UploadTest = () => {
     setSelectedExam(examKey);
     const preset = EXAM_PRESETS[examKey];
 
-    setManualTestName('');
-    setManualDuration(String(preset.defaultDuration));
-
     setSubjectEntries(
       preset.subjects.map(s => ({
         subject: s.subject,
@@ -130,13 +92,13 @@ const UploadTest = () => {
     updated[index][field] = value;
 
     // If student enters correct and incorrect in JEE modes, calculate marks automatically
-    if ((field === 'correct' || field === 'incorrect') && selectedExam !== 'Board Exam Class 12th') {
+    if (field === 'correct' || field === 'incorrect') {
       const corr = parseFloat(field === 'correct' ? value : updated[index].correct) || 0;
       const incorr = parseFloat(field === 'incorrect' ? value : updated[index].incorrect) || 0;
       const totalQ = updated[index].total_questions || 25;
-      
+
       const calcMarks = (corr * 4.0) - (incorr * 1.0);
-      updated[index].total_marks = calcMarks >= 0 ? calcMarks : 0;
+      updated[index].total_marks = calcMarks;
       updated[index].unattempted = Math.max(0, totalQ - (corr + incorr));
     }
 
@@ -148,11 +110,6 @@ const UploadTest = () => {
     e.preventDefault();
     setManualError('');
 
-    if (!manualTestName.trim()) {
-      setManualError('Please enter a test title/name.');
-      return;
-    }
-
     // Validate that at least one subject has marks entered
     const hasAnyMarks = subjectEntries.some(s => s.total_marks !== '' && !isNaN(parseFloat(s.total_marks)));
     if (!hasAnyMarks) {
@@ -162,17 +119,20 @@ const UploadTest = () => {
 
     setSavingManual(true);
     try {
+      const existingRes = await testsAPI.getTests().catch(() => ({ data: [] }));
+      const nextIndex = (existingRes.data?.length || 0) + 1;
+      const todayIso = new Date().toISOString().split('T')[0];
+
       const formattedSubjects = subjectEntries.map(s => {
         const marks = parseFloat(s.total_marks) || 0.0;
-        const maxM = parseFloat(s.max_marks) || 100.0;
+        const maxM = Math.max(parseFloat(s.max_marks) || 100.0, marks > 0 ? marks : 0);
         const totalQ = s.total_questions || 25;
-        
+
         let corr = parseInt(s.correct) || 0;
         let incorr = parseInt(s.incorrect) || 0;
         let att = corr + incorr;
 
         if (att === 0 && marks > 0) {
-          // If student only typed direct total marks (e.g. HSC or simple mode)
           corr = Math.round((marks / maxM) * totalQ);
           incorr = 0;
           att = corr;
@@ -199,20 +159,23 @@ const UploadTest = () => {
       });
 
       const totalMarksObtained = formattedSubjects.reduce((acc, curr) => acc + curr.total_marks, 0);
-      const totalMaxMarks = subjectEntries.reduce((acc, curr) => acc + (parseFloat(curr.max_marks) || 100), 0);
+      const totalMaxMarks = Math.max(
+        subjectEntries.reduce((acc, curr) => acc + (parseFloat(curr.max_marks) || 100), 0),
+        totalMarksObtained
+      );
       const totalQuestions = formattedSubjects.reduce((acc, curr) => acc + curr.total_questions, 0);
 
       const payload = {
-        test_name: manualTestName.trim(),
-        test_date: manualDate,
+        test_name: `${selectedExam} Test #${nextIndex}`,
+        test_date: todayIso,
         test_type: selectedExam,
-        shift: manualShift,
-        duration_minutes: parseInt(manualDuration) || 180,
+        shift: 'Shift 1',
+        duration_minutes: EXAM_PRESETS[selectedExam]?.defaultDuration || 180,
         total_questions: totalQuestions,
         max_marks: totalMaxMarks,
         marks_obtained: totalMarksObtained,
-        official_percentile: manualPercentile ? parseFloat(manualPercentile) : null,
-        official_rank: manualRank ? parseInt(manualRank) : null,
+        official_percentile: null,
+        official_rank: null,
         subjects: formattedSubjects,
         questions: []
       };
@@ -313,8 +276,6 @@ const UploadTest = () => {
 
   // Calculations for manual summary
   const manualTotalMarks = subjectEntries.reduce((acc, s) => acc + (parseFloat(s.total_marks) || 0), 0);
-  const manualTotalMax = subjectEntries.reduce((acc, s) => acc + (parseFloat(s.max_marks) || 100), 0);
-  const manualPercentage = manualTotalMax > 0 ? ((manualTotalMarks / manualTotalMax) * 100).toFixed(1) : 0;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -372,7 +333,7 @@ const UploadTest = () => {
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
               1. Choose Examination Category
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {Object.keys(EXAM_PRESETS).map((key) => {
                 const preset = EXAM_PRESETS[key];
                 const isSelected = selectedExam === key;
@@ -393,9 +354,7 @@ const UploadTest = () => {
                           {preset.name}
                         </span>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          key === 'Board Exam Class 12th' ? 'bg-emerald-100 text-emerald-800' :
-                          key === 'JEE Advanced' ? 'bg-amber-100 text-amber-800' :
-                          'bg-indigo-100 text-indigo-800'
+                          key === 'JEE Advanced' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'
                         }`}>
                           {preset.badge}
                         </span>
@@ -417,209 +376,93 @@ const UploadTest = () => {
             </div>
           </div>
 
-          {/* Test Metadata Form */}
-          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              2. Test Information & Date
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 mb-1">Test Title / Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Allen Mock Test 05, HSC Prelims Exam 1"
-                  value={manualTestName}
-                  onChange={(e) => setManualTestName(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold focus:outline-indigo-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Test Date</label>
-                <input
-                  type="date"
-                  required
-                  value={manualDate}
-                  onChange={(e) => setManualDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold focus:outline-indigo-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Shift / Session</label>
-                <select
-                  value={manualShift}
-                  onChange={(e) => setManualShift(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold focus:outline-indigo-600"
-                >
-                  <option value="Shift 1">Shift 1 (Morning)</option>
-                  <option value="Shift 2">Shift 2 (Evening)</option>
-                  <option value="Single Session">Single Session (Board/Standard)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Duration (Minutes)</label>
-                <input
-                  type="number"
-                  min="30"
-                  max="360"
-                  value={manualDuration}
-                  onChange={(e) => setManualDuration(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold focus:outline-indigo-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Official Percentile (Optional)</label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  placeholder="e.g. 98.42"
-                  value={manualPercentile}
-                  onChange={(e) => setManualPercentile(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs focus:outline-indigo-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Official Rank / AIR (Optional)</label>
-                <input
-                  type="number"
-                  placeholder="e.g. 1420"
-                  value={manualRank}
-                  onChange={(e) => setManualRank(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs focus:outline-indigo-600"
-                />
-              </div>
-            </div>
-          </div>
-
           {/* Subject Marks Input Section */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
                   <Calculator className="w-4 h-4 text-indigo-600" />
-                  <span>3. Enter Subject Marks ({selectedExam})</span>
+                  <span>2. Enter Subject Marks ({selectedExam})</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {selectedExam === 'Board Exam Class 12th'
-                    ? 'Enter marks obtained for all 6 HSC subjects (Mathematics, CS 1, CS 2, English, Physics, Chemistry).'
-                    : 'Enter marks directly, or enter Correct & Incorrect counts to auto-calculate scores (+4 / -1).'}
+                  Enter marks directly, or enter Correct & Incorrect counts to auto-calculate scores (+4 / -1).
                 </p>
               </div>
 
               <div className="text-right">
                 <span className="text-[11px] font-bold text-slate-400 uppercase">Live Total: </span>
                 <span className="text-base font-black text-indigo-700 ml-1">
-                  {manualTotalMarks} / {manualTotalMax} Marks ({manualPercentage}%)
+                  {manualTotalMarks} Marks
                 </span>
               </div>
             </div>
 
             {/* Subject Inputs Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {subjectEntries.map((sub, idx) => {
-                const marksVal = parseFloat(sub.total_marks) || 0;
-                const maxVal = parseFloat(sub.max_marks) || 100;
-                const pct = maxVal > 0 ? Math.min(100, Math.round((marksVal / maxVal) * 100)) : 0;
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {subjectEntries.map((sub, idx) => (
+                <div
+                  key={sub.subject}
+                  className="p-4 rounded-2xl border border-slate-200 hover:border-indigo-300 bg-slate-50/40 hover:bg-white transition-all space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`font-extrabold text-xs sm:text-sm ${
+                      sub.subject.includes('Physics') ? 'text-sky-700' :
+                      sub.subject.includes('Chemistry') ? 'text-emerald-700' :
+                      'text-amber-700'
+                    }`}>
+                      {sub.subject}
+                    </span>
+                  </div>
 
-                return (
-                  <div
-                    key={sub.subject}
-                    className="p-4 rounded-2xl border border-slate-200 hover:border-indigo-300 bg-slate-50/40 hover:bg-white transition-all space-y-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
-                        {sub.subject}
-                      </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                        sub.subject.includes('Physics') ? 'bg-sky-50 text-sky-700 border border-sky-200' :
-                        sub.subject.includes('Chemistry') ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                        sub.subject.includes('Math') ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                        sub.subject.includes('Computer') || sub.subject.includes('CS') ? 'bg-purple-50 text-purple-700 border border-purple-200' :
-                        'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                      }`}>
-                        Max: {sub.max_marks}
-                      </span>
-                    </div>
+                  {/* Marks Obtained Input */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Marks Obtained
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      placeholder="e.g. 78"
+                      value={sub.total_marks}
+                      onChange={(e) => handleSubjectFieldChange(idx, 'total_marks', e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-sm font-black text-indigo-700 focus:outline-indigo-600 text-center"
+                    />
+                  </div>
 
-                    {/* Marks Obtained Input */}
+                  {/* Correct / Incorrect helpers */}
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/60">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                        Marks Obtained
+                      <label className="block text-[10px] font-semibold text-emerald-700 mb-0.5">
+                        Correct (+4)
                       </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          step="0.5"
-                          min="0"
-                          max={sub.max_marks}
-                          placeholder="e.g. 78"
-                          value={sub.total_marks}
-                          onChange={(e) => handleSubjectFieldChange(idx, 'total_marks', e.target.value)}
-                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-sm font-black text-indigo-700 focus:outline-indigo-600 text-center"
-                        />
-                        <span className="text-xs font-bold text-slate-400 shrink-0">/ {sub.max_marks}</span>
-                      </div>
+                      <input
+                        type="number"
+                        min="0"
+                        max={sub.total_questions}
+                        placeholder="Right"
+                        value={sub.correct}
+                        onChange={(e) => handleSubjectFieldChange(idx, 'correct', e.target.value)}
+                        className="w-full px-2 py-1 bg-white border border-emerald-200 rounded-lg text-xs font-bold text-emerald-700 text-center focus:outline-emerald-500"
+                      />
                     </div>
 
-                    {/* Optional: Correct / Incorrect helpers for JEE */}
-                    {selectedExam !== 'Board Exam Class 12th' && (
-                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/60">
-                        <div>
-                          <label className="block text-[10px] font-semibold text-emerald-700 mb-0.5">
-                            Correct (+4)
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            max={sub.total_questions}
-                            placeholder="Right"
-                            value={sub.correct}
-                            onChange={(e) => handleSubjectFieldChange(idx, 'correct', e.target.value)}
-                            className="w-full px-2 py-1 bg-white border border-emerald-200 rounded-lg text-xs font-bold text-emerald-700 text-center focus:outline-emerald-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[10px] font-semibold text-rose-700 mb-0.5">
-                            Incorrect (-1)
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            max={sub.total_questions}
-                            placeholder="Wrong"
-                            value={sub.incorrect}
-                            onChange={(e) => handleSubjectFieldChange(idx, 'incorrect', e.target.value)}
-                            className="w-full px-2 py-1 bg-white border border-rose-200 rounded-lg text-xs font-bold text-rose-700 text-center focus:outline-rose-500"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Mini Progress Bar */}
-                    <div className="pt-1">
-                      <div className="w-full bg-slate-200/70 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className={`h-1.5 rounded-full transition-all duration-300 ${
-                            pct >= 75 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-rose-500'
-                          }`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
-                        <span>Score: {marksVal} M</span>
-                        <span className="font-bold text-slate-600">{pct}%</span>
-                      </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-rose-700 mb-0.5">
+                        Incorrect (-1)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={sub.total_questions}
+                        placeholder="Wrong"
+                        value={sub.incorrect}
+                        onChange={(e) => handleSubjectFieldChange(idx, 'incorrect', e.target.value)}
+                        className="w-full px-2 py-1 bg-white border border-rose-200 rounded-lg text-xs font-bold text-rose-700 text-center focus:outline-rose-500"
+                      />
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
 

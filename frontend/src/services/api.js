@@ -7,6 +7,7 @@ import {
   localSubjectsAPI,
   localPredictionsAPI,
   localPlannerAPI,
+  localHscRevisionAPI,
   parseCsvTextInBrowser,
 } from './localStore';
 
@@ -120,6 +121,13 @@ export const plannerAPI = {
   scheduleTest: (data) => localPlannerAPI.scheduleTest(data),
   deleteScheduledTest: (testId) => localPlannerAPI.deleteScheduledTest(testId),
   toggleScheduledTest: (testId) => localPlannerAPI.toggleScheduledTest(testId),
+};
+
+export const hscRevisionAPI = {
+  getChapters: (params) => localHscRevisionAPI.getChapters(params),
+  addChapter: (data) => localHscRevisionAPI.addChapter(data),
+  incrementRevision: (id) => localHscRevisionAPI.incrementRevision(id),
+  deleteChapter: (id) => localHscRevisionAPI.deleteChapter(id),
 };
 
 export default api;

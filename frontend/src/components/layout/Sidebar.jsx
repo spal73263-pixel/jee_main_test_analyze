@@ -1,17 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard,
   UploadCloud,
   BarChart3,
-  BookOpen,
-  Layers,
   AlertTriangle,
-  Clock,
   GitCompare,
-  Target,
   Calendar,
+  GraduationCap,
   History,
   Settings,
   X
@@ -24,14 +20,12 @@ const navItems = [
   { name: 'Weak Topics & Reminders', path: '/weak-topics', icon: AlertTriangle },
   { name: 'Test Comparison', path: '/compare', icon: GitCompare },
   { name: 'Study Planner', path: '/study-planner', icon: Calendar },
+  { name: 'HSC Revision', path: '/hsc-revision', icon: GraduationCap },
   { name: 'Test History', path: '/history', icon: History },
   { name: 'Profile & Settings', path: '/profile', icon: Settings },
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {
-  const { user } = useAuth();
-  const profile = user?.profile || {};
-
   return (
     <>
       {/* Mobile backdrop */}
@@ -102,16 +96,16 @@ const Sidebar = ({ isOpen, onClose }) => {
           })}
         </div>
 
-        {/* Footer Target Status Pill */}
+        {/* Footer Browser Storage Status Pill */}
         <div className="p-4 border-t border-slate-100 bg-slate-50/60">
           <div className="rounded-xl bg-white p-3 border border-slate-200/80 shadow-xs">
-            <div className="flex items-center justify-between text-xs text-slate-500 font-medium mb-1">
-              <span>Target {profile.target_year || 2026}</span>
-              <span className="text-indigo-600 font-bold">{profile.target_percentile || 99.0}+ %ile</span>
+            <div className="flex items-center justify-between text-xs text-slate-600 font-semibold mb-1">
+              <span>JEE + HSC Portal</span>
+              <span className="text-emerald-600 font-bold">Saved Locally</span>
             </div>
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1.5 font-medium">
-              <span>{profile.daily_study_hours || 6.5} hrs/day</span>
-              <span>Goal: {profile.target_marks || 220} Marks</span>
+            <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+              <span>Zero external database</span>
+              <span>Private</span>
             </div>
           </div>
         </div>

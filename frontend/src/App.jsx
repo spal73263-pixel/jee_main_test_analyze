@@ -13,6 +13,7 @@ import TestAnalysis from './pages/TestAnalysis';
 import WeakTopics from './pages/WeakTopics';
 import TestComparison from './pages/TestComparison';
 import StudyPlanner from './pages/StudyPlanner';
+import HSCRevision from './pages/HSCRevision';
 import TestHistory from './pages/TestHistory';
 import ProfileSettings from './pages/ProfileSettings';
 
@@ -61,6 +62,7 @@ function App() {
             <Route path="weak-topics" element={<WeakTopics />} />
             <Route path="compare" element={<TestComparison />} />
             <Route path="study-planner" element={<StudyPlanner />} />
+            <Route path="hsc-revision" element={<HSCRevision />} />
             <Route path="history" element={<TestHistory />} />
             <Route path="profile" element={<ProfileSettings />} />
           </Route>

@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { UserPlus, User, Mail, Key, Target, Clock, AlertCircle } from 'lucide-react';
+import { UserPlus, User, Mail, Key, AlertCircle } from 'lucide-react';
 
 const Register = () => {
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
     password: '',
-    target_year: 2026,
-    target_marks: 220,
-    target_percentile: 99.0,
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,7 +18,7 @@ const Register = () => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name.includes('target_') ? Number(value) : value
+      [name]: value
     }));
   };
 
@@ -51,7 +48,7 @@ const Register = () => {
           Create JEE Student Account
         </h2>
         <p className="mt-1 text-center text-xs text-slate-500">
-          Personalized mock test diagnostic tracking & syllabus recovery
+          Personalized mock test diagnostic tracking & HSC revision
         </p>
       </div>
 
@@ -75,7 +72,7 @@ const Register = () => {
                   required
                   value={formData.full_name}
                   onChange={handleChange}
-                  placeholder="e.g. Priya Patel"
+                  placeholder="e.g. Om Pal"
                   className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
@@ -91,7 +88,7 @@ const Register = () => {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="priya@example.com"
+                  placeholder="student@example.com"
                   className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
@@ -110,49 +107,6 @@ const Register = () => {
                   onChange={handleChange}
                   placeholder="At least 6 characters"
                   className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Target Year</label>
-                <select
-                  name="target_year"
-                  value={formData.target_year}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
-                >
-                  <option value={2026}>JEE 2026</option>
-                  <option value={2027}>JEE 2027</option>
-                  <option value={2028}>JEE 2028</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Target Marks</label>
-                <input
-                  type="number"
-                  name="target_marks"
-                  min={50}
-                  max={300}
-                  value={formData.target_marks}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Target %ile</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min={50}
-                  max={100}
-                  name="target_percentile"
-                  value={formData.target_percentile}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
             </div>

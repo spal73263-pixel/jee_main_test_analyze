@@ -1,19 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  TrendingUp,
   Award,
-  Target,
   BarChart2,
-  CheckCircle,
-  XCircle,
-  HelpCircle,
   UploadCloud,
   ChevronRight,
-  Flame,
   AlertTriangle,
   Calendar,
-  Sparkles
+  Sparkles,
+  GraduationCap
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -32,13 +27,14 @@ import {
   AreaChart,
   Area
 } from 'recharts';
-import { dashboardAPI } from '../services/api';
+import { dashboardAPI, hscRevisionAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const PIE_COLORS = ['#10b981', '#f43f5e', '#cbd5e1'];
 
 const Dashboard = () => {
   const [data, setData] = useState(null);
+  const [hscCount, setHscCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -50,8 +46,12 @@ const Dashboard = () => {
   const fetchDashboard = async () => {
     try {
       setLoading(true);
-      const res = await dashboardAPI.getOverview();
+      const [res, hscRes] = await Promise.all([
+        dashboardAPI.getOverview(),
+        hscRevisionAPI.getChapters().catch(() => ({ data: [] })),
+      ]);
       setData(res.data);
+      setHscCount(Array.isArray(hscRes.data) ? hscRes.data.length : 0);
     } catch (err) {
       console.error("Dashboard fetch error:", err);
     } finally {
@@ -67,7 +67,6 @@ const Dashboard = () => {
     );
   }
 
-  const profile = user?.profile || {};
   const hasTests = data && data.total_tests > 0;
 
   const pieData = data?.question_status_breakdown ? [
@@ -90,22 +89,24 @@ const Dashboard = () => {
               Welcome back, {user?.full_name || 'Student'}!
             </h1>
             <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-xl">
-              Targeting <span className="font-bold text-white">{profile.target_marks || 220} marks</span> ({profile.target_percentile || 99.0}%ile) in {profile.target_year || 2026}.
-              {data?.overall_improvement > 0 && (
-                <span className="text-emerald-400 font-semibold ml-1">
-                  Overall progress: +{data.overall_improvement} marks across your mock tests.
-                </span>
-              )}
+              Track your JEE mock tests, accuracy trends, weak chapters, and HSC Class 12 revision progress.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => navigate('/upload')}
               className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all"
             >
               <UploadCloud className="w-4 h-4" />
               <span>Upload New Test</span>
+            </button>
+            <button
+              onClick={() => navigate('/hsc-revision')}
+              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs sm:text-sm flex items-center gap-2 backdrop-blur-sm transition-all"
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span>HSC Revision</span>
             </button>
             <button
               onClick={() => navigate('/study-planner')}
@@ -118,8 +119,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 8 Performance Overview Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Key Metric Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {/* Card 1: Total Tests */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
           <p className="text-xs font-semibold text-slate-500">1. Tests Attempted</p>
@@ -129,36 +130,18 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Card 2: Average Marks */}
+        {/* Card 2: Highest Marks */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
-          <p className="text-xs font-semibold text-slate-500">2. Average Marks</p>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-slate-900">{data?.average_marks || 0}</span>
-            <span className="text-xs text-slate-400 font-medium">/ 300</span>
-          </div>
-        </div>
-
-        {/* Card 3: Highest Marks */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
-          <p className="text-xs font-semibold text-slate-500">3. Highest Marks</p>
+          <p className="text-xs font-semibold text-slate-500">2. Highest Marks</p>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-emerald-600">{data?.highest_marks || 0}</span>
             <Award className="w-5 h-5 text-emerald-500" />
           </div>
         </div>
 
-        {/* Card 4: Lowest Marks */}
+        {/* Card 3: Average Accuracy */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
-          <p className="text-xs font-semibold text-slate-500">4. Lowest Marks</p>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-slate-700">{data?.lowest_marks || 0}</span>
-            <span className="text-xs text-slate-400 font-medium">Baseline</span>
-          </div>
-        </div>
-
-        {/* Card 5: Average Accuracy */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
-          <p className="text-xs font-semibold text-slate-500">5. Average Accuracy</p>
+          <p className="text-xs font-semibold text-slate-500">3. Average Accuracy</p>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-indigo-600">{data?.average_accuracy || 0}%</span>
             <span className="text-xs text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded">
@@ -167,9 +150,9 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Card 6: Average Percentile */}
+        {/* Card 4: Average Percentile */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
-          <p className="text-xs font-semibold text-slate-500">6. Avg Percentile</p>
+          <p className="text-xs font-semibold text-slate-500">4. Avg Percentile</p>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-violet-600">
               {data?.average_percentile ? `${data.average_percentile}%ile` : 'N/A'}
@@ -178,25 +161,14 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Card 7: Latest Test Score */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
-          <p className="text-xs font-semibold text-slate-500">7. Latest Test Score</p>
+        {/* Card 5: Latest Test Score */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs col-span-2 sm:col-span-1">
+          <p className="text-xs font-semibold text-slate-500">5. Latest Test Score</p>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-slate-900">{data?.latest_test_score || 0}</span>
             <span className="text-xs text-indigo-600 truncate max-w-[90px]" title={data?.latest_test_name || ''}>
-              {data?.latest_test_name?.slice(0, 10) || 'None'}
+              {data?.latest_test_name?.slice(0, 12) || 'None'}
             </span>
-          </div>
-        </div>
-
-        {/* Card 8: Overall Improvement */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
-          <p className="text-xs font-semibold text-slate-500">8. Overall Improvement</p>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className={`text-2xl font-extrabold ${data?.overall_improvement >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-              {data?.overall_improvement >= 0 ? `+${data?.overall_improvement}` : data?.overall_improvement}
-            </span>
-            <TrendingUp className={`w-5 h-5 ${data?.overall_improvement >= 0 ? 'text-emerald-500' : 'text-rose-500'}`} />
           </div>
         </div>
       </div>
@@ -248,7 +220,7 @@ const Dashboard = () => {
         {/* Correct vs Incorrect vs Unattempted Donut Chart */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col">
           <h2 className="text-base font-bold text-slate-900 mb-1">Attempt Quality Breakdown</h2>
-          <p className="text-xs text-slate-500 mb-3">Overall question status distribution</p>
+          <p className="text-xs text-slate-500 mb-3">Question status distribution across logged tests</p>
 
           <div className="h-56 w-full flex items-center justify-center">
             {hasTests ? (
@@ -299,8 +271,8 @@ const Dashboard = () => {
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base font-bold text-slate-900">Subject-Wise Performance Comparison</h2>
-              <p className="text-xs text-slate-500">Average marks and negative marking loss</p>
+              <h2 className="text-base font-bold text-slate-900">Subject-Wise Marks Comparison</h2>
+              <p className="text-xs text-slate-500">Subject score and negative marking loss</p>
             </div>
             <button
               onClick={() => navigate('/test-analysis')}
@@ -319,7 +291,7 @@ const Dashboard = () => {
                 <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} />
                 <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '12px' }} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
-                <Bar dataKey="average_marks" name="Average Marks" fill="#4f46e5" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="average_marks" name="Subject Marks" fill="#4f46e5" radius={[6, 6, 0, 0]} />
                 <Bar dataKey="total_negative_marks" name="Negative Marks Lost" fill="#f43f5e" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -368,41 +340,61 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Action Banners: Weak Topics Alert & Quick Navigation */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl p-5 flex items-center justify-between">
+      {/* Action Banners: Weak Topics, HSC Revision & Study Planner */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl p-5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
               <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-amber-900">
                 {data?.weak_topics_count || 0} Weak Chapters Identified
               </h3>
-              <p className="text-xs text-amber-700">Topics below 50% accuracy requiring targeted revision</p>
+              <p className="text-xs text-amber-700">Topics below 50% accuracy requiring revision</p>
             </div>
           </div>
           <button
             onClick={() => navigate('/weak-topics')}
-            className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shadow-xs"
+            className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shadow-xs shrink-0"
           >
             Review Topics
           </button>
         </div>
 
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200/80 rounded-2xl p-5 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 rounded-2xl p-5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+              <GraduationCap className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-emerald-900">
+                HSC Revision ({hscCount} {hscCount === 1 ? 'Chapter' : 'Chapters'})
+              </h3>
+              <p className="text-xs text-emerald-700">Track Physics, Maths, English, Chem & CS</p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/hsc-revision')}
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs shrink-0"
+          >
+            Open Revision
+          </button>
+        </div>
+
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200/80 rounded-2xl p-5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 shrink-0">
               <Calendar className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-indigo-900">7-Day Study Planner</h3>
-              <p className="text-xs text-indigo-700">Daily targeted recovery roadmap mapped to weak chapters</p>
+              <p className="text-xs text-indigo-700">Weekly schedule mapped to focus chapters</p>
             </div>
           </div>
           <button
             onClick={() => navigate('/study-planner')}
-            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs"
+            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs shrink-0"
           >
             Open Planner
           </button>

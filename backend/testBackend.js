@@ -91,6 +91,7 @@ async function runTests() {
       localSubjectsAPI,
       localPredictionsAPI,
       localPlannerAPI,
+      localHscRevisionAPI,
       parseCsvTextInBrowser,
     } = await import(localStoreUrl);
 
@@ -118,12 +119,14 @@ async function runTests() {
     globalThis.localStorage.setItem('token', omRes.data.access_token);
     console.log('✓ 4. Om Pal login, registration, profile edit & password reset passed');
 
-    // 5. Clean empty state (0 tests, 0 reminders, 0 study tasks)
+    // 5. Clean empty state (0 tests, 0 reminders, 0 study tasks, 0 HSC chapters)
     const dashEmpty = await localDashboardAPI.getOverview();
     assert(dashEmpty.data.total_tests === 0, 'Expected 0 initial tests');
     const planInit = await localPlannerAPI.getPlan();
     assert(Array.isArray(planInit.data.tasks) && planInit.data.tasks.length === 0, 'Expected 0 initial study tasks');
-    console.log('✓ 5. Zero hardcoded tests & empty initial study planner verified');
+    const hscInit = await localHscRevisionAPI.getChapters();
+    assert(Array.isArray(hscInit.data) && hscInit.data.length === 0, 'Expected 0 initial HSC revision chapters');
+    console.log('✓ 5. Zero hardcoded tests, empty planner & empty HSC revision verified');
 
     // 6. Manual JEE Main (with chapter questions for AI plan/time analytics) + HSC 6-subject entry
     const jeeRes = await localUploadsAPI.confirmTest({
@@ -207,12 +210,36 @@ async function runTests() {
     await localPlannerAPI.deleteScheduledTest(sched.data.id);
     console.log('✓ 8. Browser CSV fallback + reminders + AI auto-plan + study planner CRUD passed');
 
-    // 9. Clean delete & state persistence check
+    // 9. HSC Revision Tracker CRUD (Physics, Maths, English, Chemistry, CS)
+    const hscSubjects = ['Physics', 'Maths', 'English', 'Chemistry', 'CS'];
+    const addedHscIds = [];
+    for (const sub of hscSubjects) {
+      const added = await localHscRevisionAPI.addChapter({
+        subject: sub,
+        chapter_name: `${sub} Revision Chapter 1`,
+        notes: 'Completed textbook exercises',
+      });
+      addedHscIds.push(added.data.id);
+    }
+    const allHsc = await localHscRevisionAPI.getChapters();
+    assert(allHsc.data.length === 5, `Expected 5 HSC chapters, got ${allHsc.data.length}`);
+    const csOnly = await localHscRevisionAPI.getChapters({ subject: 'CS' });
+    assert(csOnly.data.length === 1 && csOnly.data[0].subject === 'CS', 'HSC subject filter failed');
+    const bumped = await localHscRevisionAPI.incrementRevision(addedHscIds[0]);
+    assert(bumped.data.revision_count === 2, 'HSC revision round increment failed');
+    for (const id of addedHscIds) {
+      await localHscRevisionAPI.deleteChapter(id);
+    }
+    const hscEmptyAfter = await localHscRevisionAPI.getChapters();
+    assert(hscEmptyAfter.data.length === 0, 'HSC delete cleanup failed');
+    console.log('✓ 9. HSC Revision CRUD across Physics, Maths, English, Chemistry & CS passed');
+
+    // 10. Clean delete & state persistence check
     await localTestsAPI.deleteTest(jeeRes.data.id);
     await localTestsAPI.deleteTest(hscRes.data.id);
     const dashAfter = await localDashboardAPI.getOverview();
     assert(dashAfter.data.total_tests === 0, 'Delete cleanup failed');
-    console.log('✓ 9. Test deletion & clean state verification passed');
+    console.log('✓ 10. Test deletion & clean state verification passed');
 
     console.log('\nALL ZERO-DB WEB STORAGE + STATELESS API E2E TESTS PASSED!');
   } finally {

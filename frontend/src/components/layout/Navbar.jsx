@@ -1,13 +1,11 @@
 import React from 'react';
-import { Menu, UploadCloud, LogOut, User as UserIcon, Bell, Target, Sparkles } from 'lucide-react';
+import { Menu, UploadCloud, LogOut, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const Navbar = ({ onOpenSidebar }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
-  const profile = user?.profile || {};
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between no-print">
@@ -21,12 +19,7 @@ const Navbar = ({ onOpenSidebar }) => {
         <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-slate-500">
           <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100/80 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" />
-            JEE Main 2026 Session
-          </span>
-          <span className="hidden md:inline-block text-slate-300">•</span>
-          <span className="hidden md:inline-flex items-center gap-1 text-slate-600">
-            <Target className="w-3.5 h-3.5 text-indigo-500" />
-            Target: {profile.target_marks || 220} Marks ({profile.target_percentile || 99.0}%ile)
+            JEE & HSC Study Portal
           </span>
         </div>
       </div>
@@ -48,7 +41,7 @@ const Navbar = ({ onOpenSidebar }) => {
             </div>
             <div className="hidden sm:block text-left">
               <p className="text-xs font-bold text-slate-900 leading-tight">{user?.full_name || 'Student'}</p>
-              <p className="text-[11px] text-slate-400 font-medium">{profile.target_attempt || 'Jan & Apr'}</p>
+              <p className="text-[11px] text-slate-400 font-medium">{user?.email || 'Local Account'}</p>
             </div>
           </div>
           <button

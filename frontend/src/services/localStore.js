@@ -149,6 +149,7 @@ function createInitialDb() {
     studyPlans: [],
     studyTasks: [],
     scheduledTests: [],
+    hscRevisions: [],
   };
 }
 
@@ -175,6 +176,7 @@ function loadDb() {
       studyPlans: Array.isArray(parsed.studyPlans) ? parsed.studyPlans : [],
       studyTasks: Array.isArray(parsed.studyTasks) ? parsed.studyTasks : [],
       scheduledTests: Array.isArray(parsed.scheduledTests) ? parsed.scheduledTests : [],
+      hscRevisions: Array.isArray(parsed.hscRevisions) ? parsed.hscRevisions : [],
     };
   } catch {
     const initial = createInitialDb();
@@ -1962,5 +1964,91 @@ export const localPlannerAPI = {
     rem.is_completed = !rem.is_completed;
     saveDb(db);
     return wrapRes(rem);
+  },
+};
+
+const HSC_SUBJECT_LIST = ['Physics', 'Maths', 'English', 'Chemistry', 'CS'];
+
+export const localHscRevisionAPI = {
+  async getChapters(params = {}) {
+    const db = loadDb();
+    const user = getCurrentUserFromDb(db);
+    const { subject, search } = params || {};
+
+    let list = (db.hscRevisions || []).filter((c) => c.user_id === user.id);
+    if (subject && subject !== 'All') {
+      list = list.filter((c) => c.subject === subject);
+    }
+    if (search && String(search).trim() !== '') {
+      const needle = String(search).trim().toLowerCase();
+      list = list.filter(
+        (c) =>
+          String(c.chapter_name || '').toLowerCase().includes(needle) ||
+          String(c.notes || '').toLowerCase().includes(needle)
+      );
+    }
+    list.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    return wrapRes(list);
+  },
+
+  async addChapter({ subject, chapter_name, notes } = {}) {
+    const cleanSubject = HSC_SUBJECT_LIST.includes(subject) ? subject : null;
+    if (!cleanSubject) {
+      throw createApiError(400, 'Please select a valid HSC subject (Physics, Maths, English, Chemistry, or CS).');
+    }
+    if (!chapter_name || !String(chapter_name).trim()) {
+      throw createApiError(400, 'Chapter name is required.');
+    }
+
+    const db = loadDb();
+    const user = getCurrentUserFromDb(db);
+    if (!Array.isArray(db.hscRevisions)) {
+      db.hscRevisions = [];
+    }
+
+    const cleanName = String(chapter_name).trim();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const entry = {
+      id: genId('hsc'),
+      user_id: user.id,
+      subject: cleanSubject,
+      chapter_name: cleanName,
+      notes: notes && String(notes).trim() ? String(notes).trim() : null,
+      revision_count: 1,
+      completed_date: todayStr,
+      created_at: new Date().toISOString(),
+    };
+
+    db.hscRevisions.push(entry);
+    saveDb(db);
+    return wrapRes(entry);
+  },
+
+  async incrementRevision(chapterId) {
+    const db = loadDb();
+    const user = getCurrentUserFromDb(db);
+    const entry = (db.hscRevisions || []).find((c) => c.id === chapterId && c.user_id === user.id);
+    if (!entry) {
+      throw createApiError(404, 'HSC revision chapter not found.');
+    }
+    entry.revision_count = Number(entry.revision_count || 1) + 1;
+    entry.completed_date = new Date().toISOString().split('T')[0];
+    saveDb(db);
+    return wrapRes(entry);
+  },
+
+  async deleteChapter(chapterId) {
+    const db = loadDb();
+    const user = getCurrentUserFromDb(db);
+    const list = db.hscRevisions || [];
+    const idx = list.findIndex((c) => c.id === chapterId && c.user_id === user.id);
+    if (idx === -1) {
+      throw createApiError(404, 'HSC revision chapter not found.');
+    }
+    list.splice(idx, 1);
+    db.hscRevisions = list;
+    saveDb(db);
+    return wrapRes({ message: 'Completed chapter removed.' });
   },
 };
