@@ -1,4 +1,14 @@
 import axios from 'axios';
+import {
+  localAuthAPI,
+  localDashboardAPI,
+  localTestsAPI,
+  localUploadsAPI,
+  localSubjectsAPI,
+  localPredictionsAPI,
+  localPlannerAPI,
+  parseCsvTextInBrowser,
+} from './localStore';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
@@ -7,83 +17,109 @@ const api = axios.create({
   },
 });
 
-// Interceptor to attach JWT token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
-
-// Interceptor to handle unauthorized redirects
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-      }
-    }
-    return Promise.reject(error);
-  }
-);
-
 export const authAPI = {
-  login: (data) => api.post('/users/login', data),
-  register: (data) => api.post('/users/register', data),
-  getMe: () => api.get('/users/me'),
-  updateProfile: (data) => api.put('/users/profile', data),
-  forgotPassword: (data) => api.post('/users/forgot-password', data),
-  resetPassword: (data) => api.post('/users/reset-password', data),
+  login: (data) => localAuthAPI.login(data),
+  register: (data) => localAuthAPI.register(data),
+  getMe: () => localAuthAPI.getMe(),
+  updateProfile: (data) => localAuthAPI.updateProfile(data),
+  forgotPassword: (data) => localAuthAPI.forgotPassword(data),
+  resetPassword: (data) => localAuthAPI.resetPassword(data),
 };
 
 export const dashboardAPI = {
-  getOverview: () => api.get('/analysis/dashboard'),
-  getWeakTopics: () => api.get('/analysis/weak-topics'),
-  getReminders: () => api.get('/analysis/reminders'),
-  addReminder: (data) => api.post('/analysis/reminders', data),
-  deleteReminder: (id) => api.delete(`/analysis/reminders/${id}`),
-  toggleReminder: (id) => api.put(`/analysis/reminders/${id}/toggle`),
+  getOverview: () => localDashboardAPI.getOverview(),
+  getWeakTopics: () => localDashboardAPI.getWeakTopics(),
+  getReminders: () => localDashboardAPI.getReminders(),
+  addReminder: (data) => localDashboardAPI.addReminder(data),
+  deleteReminder: (id) => localDashboardAPI.deleteReminder(id),
+  toggleReminder: (id) => localDashboardAPI.toggleReminder(id),
 };
 
 export const testsAPI = {
-  getTests: (params) => api.get('/tests', { params }),
-  getTestDetail: (id) => api.get(`/tests/${id}`),
-  deleteTest: (id) => api.delete(`/tests/${id}`),
-  getTimeAnalytics: (id) => api.get(`/tests/${id}/time`),
+  getTests: (params) => localTestsAPI.getTests(params),
+  getTestDetail: (id) => localTestsAPI.getTestDetail(id),
+  deleteTest: (id) => localTestsAPI.deleteTest(id),
+  getTimeAnalytics: (id) => localTestsAPI.getTimeAnalytics(id),
 };
 
 export const uploadsAPI = {
-  processFile: (formData) => api.post('/uploads/process', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
-  confirmTest: (data) => api.post('/uploads/confirm', data),
+  processFile: async (formData) => {
+    const file = formData instanceof FormData ? formData.get('file') : null;
+    const filename = file?.name || 'Uploaded_Test';
+    const lowerName = filename.toLowerCase();
+
+    try {
+      return await api.post('/uploads/process', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    } catch (backendErr) {
+      if (backendErr?.response?.status === 400) {
+        throw backendErr;
+      }
+
+      if (file && lowerName.endsWith('.csv') && typeof file.text === 'function') {
+        const csvText = await file.text();
+        return { data: parseCsvTextInBrowser(csvText, filename) };
+      }
+
+      const baseName = filename
+        .replace(/\.[^.]+$/, '')
+        .replace(/[_-]+/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+        .trim();
+
+      return {
+        data: {
+          test_name: baseName || 'Uploaded Mock Test',
+          test_date: new Date().toISOString().split('T')[0],
+          test_type: 'Mock Test',
+          shift: 'Shift 1',
+          duration_minutes: 180,
+          total_questions: 75,
+          max_marks: 300.0,
+          marks_obtained: 0.0,
+          official_percentile: null,
+          official_rank: null,
+          subjects: [
+            { subject: 'Physics', total_questions: 25, attempted: 0, correct: 0, incorrect: 0, unattempted: 25, positive_marks: 0, negative_marks: 0, total_marks: 0, accuracy: 0, percentage: 0, time_spent_seconds: 0 },
+            { subject: 'Chemistry', total_questions: 25, attempted: 0, correct: 0, incorrect: 0, unattempted: 25, positive_marks: 0, negative_marks: 0, total_marks: 0, accuracy: 0, percentage: 0, time_spent_seconds: 0 },
+            { subject: 'Mathematics', total_questions: 25, attempted: 0, correct: 0, incorrect: 0, unattempted: 25, positive_marks: 0, negative_marks: 0, total_marks: 0, accuracy: 0, percentage: 0, time_spent_seconds: 0 },
+          ],
+          questions: [],
+          extraction_source: 'Manual Verification Fallback',
+          confidence_level: 'partial',
+          warnings: [
+            backendErr?.response?.data?.detail ||
+              'Automatic file parser was unavailable; review and enter subject marks below before saving.',
+          ],
+          missing_fields: ['Verify subject marks manually'],
+          validation_status: 'needs_review',
+        },
+      };
+    }
+  },
+  confirmTest: (data) => localUploadsAPI.confirmTest(data),
 };
 
 export const subjectsAPI = {
-  getBreakdown: (params) => api.get('/subjects/breakdown', { params }),
+  getBreakdown: (params) => localSubjectsAPI.getBreakdown(params),
 };
 
 export const predictionsAPI = {
-  getTargetAnalysis: () => api.get('/predictions/target-analysis'),
-  compareTests: (data) => api.post('/predictions/compare', data),
+  getTargetAnalysis: () => localPredictionsAPI.getTargetAnalysis(),
+  compareTests: (data) => localPredictionsAPI.compareTests(data),
 };
 
 export const plannerAPI = {
-  getPlan: () => api.get('/study-planner'),
-  regeneratePlan: () => api.post('/study-planner/generate'),
-  toggleTask: (taskId) => api.put(`/study-planner/tasks/${taskId}/toggle`),
-  addTask: (data) => api.post('/study-planner/tasks', data),
-  deleteTask: (taskId) => api.delete(`/study-planner/tasks/${taskId}`),
-  getScheduledTests: () => api.get('/study-planner/tests'),
-  scheduleTest: (data) => api.post('/study-planner/tests', data),
-  deleteScheduledTest: (testId) => api.delete(`/study-planner/tests/${testId}`),
-  toggleScheduledTest: (testId) => api.put(`/study-planner/tests/${testId}/toggle`),
+  getPlan: () => localPlannerAPI.getPlan(),
+  regeneratePlan: () => localPlannerAPI.regeneratePlan(),
+  toggleTask: (taskId) => localPlannerAPI.toggleTask(taskId),
+  addTask: (data) => localPlannerAPI.addTask(data),
+  deleteTask: (taskId) => localPlannerAPI.deleteTask(taskId),
+  getScheduledTests: () => localPlannerAPI.getScheduledTests(),
+  scheduleTest: (data) => localPlannerAPI.scheduleTest(data),
+  deleteScheduledTest: (testId) => localPlannerAPI.deleteScheduledTest(testId),
+  toggleScheduledTest: (testId) => localPlannerAPI.toggleScheduledTest(testId),
 };
 
 export default api;

@@ -1,36 +1,13 @@
 version: '3.8'
 
 services:
-  mongo:
-    image: mongo:7
-    container_name: jee_mongo_db
-    restart: always
-    volumes:
-      - mongo_data:/data/db
-    ports:
-      - "27017:27017"
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   web:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: jee_analyzer_mern_app
+    container_name: jee_analyzer_app
     restart: always
-    depends_on:
-      mongo:
-        condition: service_healthy
     ports:
       - "8000:8000"
     environment:
-      MONGODB_URI: mongodb://mongo:27017/jee_analyzer
-      JWT_SECRET: production_secret_key_change_me_in_prod_998877665544332211
-      ACCESS_TOKEN_EXPIRE_MINUTES: 10080
       PORT: 8000
-
-volumes:
-  mongo_data:

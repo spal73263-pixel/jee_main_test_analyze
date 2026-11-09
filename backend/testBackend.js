@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { pathToFileURL } = require('url');
 
 let baseUrl = process.env.TEST_BASE_URL || '';
 
@@ -16,16 +17,31 @@ async function req(endpoint, options = {}) {
   return { status: res.status, body };
 }
 
+function installLocalStorageShim() {
+  const store = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => {
+      store.set(k, String(v));
+    },
+    removeItem: (k) => {
+      store.delete(k);
+    },
+    clear: () => {
+      store.clear();
+    },
+  };
+}
+
 async function runTests() {
   let localServer = null;
-  let closeDBFn = null;
 
   try {
+    // ------------------------------------------------------------------
+    // PART 1: Stateless Express Backend (Zero Database Required)
+    // ------------------------------------------------------------------
     if (!baseUrl) {
       const app = require('./server');
-      const { ensureDatabaseReady, closeDB } = require('./config/db');
-      closeDBFn = closeDB;
-      await ensureDatabaseReady();
       localServer = await new Promise((resolve) => {
         const srv = app.listen(0, '127.0.0.1', () => resolve(srv));
       });
@@ -33,41 +49,84 @@ async function runTests() {
       baseUrl = `http://127.0.0.1:${addr.port}`;
     }
 
-    console.log(`Running MERN End-to-End Smoke Suite against ${baseUrl}...`);
+    console.log(`Running Zero-DB E2E Suite against ${baseUrl}...`);
 
-    // 1. Health & SPA check
     const health = await req('/api/health');
-    assert(health.status === 200, `Health status expected 200, got ${health.status}`);
-    assert(health.body.status === 'healthy', 'Health status should be healthy');
-    assert(String(health.body.stack).includes('MERN'), 'Stack should mention MERN');
-    console.log('✓ 1. Health check passed');
+    assert(health.status === 200 && health.body.status === 'healthy', 'Health check should pass');
+    assert(health.body.database === 'none', `Expected database="none", got ${health.body.database}`);
+    console.log('✓ 1. Stateless backend health check passed (zero database)');
 
     const rootHtml = await fetch(`${baseUrl}/`);
     const htmlText = await rootHtml.text();
-    assert(rootHtml.status === 200 && htmlText.includes('id="root"'), 'Frontend SPA HTML should be served on /');
+    assert(rootHtml.status === 200 && htmlText.includes('id="root"'), 'Built React SPA should be served on /');
     console.log('✓ 2. Built React SPA served on /');
 
-    // 2. Om Pal Login & Profile Verification
-    const login = await req('/api/users/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'demo@jeemain.ai', password: 'password123' }),
+    const sampleCsvPath = path.resolve(__dirname, '..', 'sample_tests', 'allen_mock_test_result.csv');
+    let sampleCsvBytes = null;
+    if (fs.existsSync(sampleCsvPath)) {
+      sampleCsvBytes = fs.readFileSync(sampleCsvPath);
+      const formData = new FormData();
+      formData.append('file', new Blob([sampleCsvBytes], { type: 'text/csv' }), 'allen_mock_test_result.csv');
+      const upRes = await fetch(`${baseUrl}/api/uploads/process`, {
+        method: 'POST',
+        body: formData,
+      });
+      const upBody = await upRes.json();
+      assert(upRes.status === 200 && upBody.questions.length === 75, 'Stateless CSV upload extraction failed');
+      console.log('✓ 3. Stateless multipart CSV extraction (75 questions) passed');
+    }
+
+    // ------------------------------------------------------------------
+    // PART 2: Browser-Persisted LocalStorage Engine (Om Pal & Full UI)
+    // ------------------------------------------------------------------
+    installLocalStorageShim();
+    const localStoreUrl = pathToFileURL(
+      path.resolve(__dirname, '..', 'frontend', 'src', 'services', 'localStore.js')
+    ).href;
+    const {
+      localAuthAPI,
+      localDashboardAPI,
+      localTestsAPI,
+      localUploadsAPI,
+      localSubjectsAPI,
+      localPredictionsAPI,
+      localPlannerAPI,
+      parseCsvTextInBrowser,
+    } = await import(localStoreUrl);
+
+    // 4. Om Pal login + multi-user registration / profile / reset flow
+    const loginRes = await localAuthAPI.login({ email: 'demo@jeemain.ai', password: 'password123' });
+    assert(loginRes.data.user.full_name === 'Om Pal', `Expected Om Pal, got ${loginRes.data.user.full_name}`);
+
+    const regRes = await localAuthAPI.register({
+      email: 'student2@jeemain.ai',
+      password: 'secret123',
+      full_name: 'Student Two',
+      target_marks: 250,
     });
-    assert(login.status === 200 && login.body.access_token, 'Login should succeed with token');
-    assert(login.body.user?.full_name === 'Om Pal', `Expected Om Pal, got ${login.body.user?.full_name}`);
-    const token = login.body.access_token;
-    const authHeaders = { Authorization: `Bearer ${token}` };
-    console.log('✓ 3. Om Pal login & JWT verification passed');
+    globalThis.localStorage.setItem('token', regRes.data.access_token);
+    const updProf = await localAuthAPI.updateProfile({ target_marks: 260, daily_study_hours: 8 });
+    assert(updProf.data.target_marks === 260, 'Profile update failed');
+    const forgotRes = await localAuthAPI.forgotPassword({ email: 'student2@jeemain.ai' });
+    assert(forgotRes.data.reset_token, 'Forgot password token generation failed');
+    await localAuthAPI.resetPassword({ token: forgotRes.data.reset_token, new_password: 'newpassword123' });
+    const relogin = await localAuthAPI.login({ email: 'student2@jeemain.ai', password: 'newpassword123' });
+    assert(relogin.data.user.profile.target_marks === 260, 'Password reset / profile persistence check failed');
 
-    // 3. Clean Empty State Verification (zero hardcoded tests or study tasks)
-    const dashEmpty = await req('/api/analysis/dashboard', { headers: authHeaders });
-    assert(dashEmpty.status === 200 && dashEmpty.body.total_tests === 0, 'Expected clean 0 pre-seeded tests');
-    const planInit = await req('/api/study-planner', { headers: authHeaders });
-    assert(planInit.status === 200 && Array.isArray(planInit.body.tasks) && planInit.body.tasks.length === 0, 'Study planner should start empty with 0 hardcoded tasks');
-    console.log('✓ 4. Zero hardcoded tests & empty initial study planner verified');
+    // Switch back to Om Pal
+    const omRes = await localAuthAPI.login({ email: 'demo@jeemain.ai', password: 'password123' });
+    globalThis.localStorage.setItem('token', omRes.data.access_token);
+    console.log('✓ 4. Om Pal login, registration, profile edit & password reset passed');
 
-    // 4. Manual JEE Main + HSC 6-Subject Entry
-    const jeePayload = {
+    // 5. Clean empty state (0 tests, 0 reminders, 0 study tasks)
+    const dashEmpty = await localDashboardAPI.getOverview();
+    assert(dashEmpty.data.total_tests === 0, 'Expected 0 initial tests');
+    const planInit = await localPlannerAPI.getPlan();
+    assert(Array.isArray(planInit.data.tasks) && planInit.data.tasks.length === 0, 'Expected 0 initial study tasks');
+    console.log('✓ 5. Zero hardcoded tests & empty initial study planner verified');
+
+    // 6. Manual JEE Main (with chapter questions for AI plan/time analytics) + HSC 6-subject entry
+    const jeeRes = await localUploadsAPI.confirmTest({
       test_name: 'Self Entered JEE Main 1',
       test_date: '2026-02-01',
       test_type: 'JEE Main',
@@ -75,22 +134,22 @@ async function runTests() {
       duration_minutes: 180,
       total_questions: 75,
       max_marks: 300,
-      marks_obtained: 210,
+      marks_obtained: 208,
       subjects: [
-        { subject: 'Physics', total_questions: 25, attempted: 22, correct: 18, incorrect: 4, unattempted: 3, positive_marks: 72, negative_marks: 4, total_marks: 68, accuracy: 81.82, percentage: 68, time_spent_seconds: 0 },
-        { subject: 'Chemistry', total_questions: 25, attempted: 24, correct: 20, incorrect: 4, unattempted: 1, positive_marks: 80, negative_marks: 4, total_marks: 76, accuracy: 83.33, percentage: 76, time_spent_seconds: 0 },
-        { subject: 'Mathematics', total_questions: 25, attempted: 21, correct: 17, incorrect: 4, unattempted: 4, positive_marks: 68, negative_marks: 4, total_marks: 64, accuracy: 80.95, percentage: 64, time_spent_seconds: 0 },
+        { subject: 'Physics', total_questions: 25, attempted: 22, correct: 18, incorrect: 4, unattempted: 3, positive_marks: 72, negative_marks: 4, total_marks: 68, accuracy: 81.82, percentage: 68, time_spent_seconds: 3200 },
+        { subject: 'Chemistry', total_questions: 25, attempted: 24, correct: 20, incorrect: 4, unattempted: 1, positive_marks: 80, negative_marks: 4, total_marks: 76, accuracy: 83.33, percentage: 76, time_spent_seconds: 2600 },
+        { subject: 'Mathematics', total_questions: 25, attempted: 21, correct: 17, incorrect: 4, unattempted: 4, positive_marks: 68, negative_marks: 4, total_marks: 64, accuracy: 80.95, percentage: 64, time_spent_seconds: 4000 },
       ],
-      questions: [],
-    };
-    const jeeRes = await req('/api/uploads/confirm', {
-      method: 'POST',
-      headers: { ...authHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify(jeePayload),
+      questions: [
+        { question_number: 1, subject: 'Physics', chapter: 'Rotational Motion', status: 'Incorrect', marks: -1, time_spent_seconds: 240 },
+        { question_number: 2, subject: 'Physics', chapter: 'Rotational Motion', status: 'Incorrect', marks: -1, time_spent_seconds: 190 },
+        { question_number: 3, subject: 'Chemistry', chapter: 'Chemical Bonding', status: 'Correct', marks: 4, time_spent_seconds: 75 },
+        { question_number: 4, subject: 'Mathematics', chapter: 'Definite Integration', status: 'Correct', marks: 4, time_spent_seconds: 120 },
+      ],
     });
-    assert(jeeRes.status === 200 && jeeRes.body.id, 'JEE manual confirm failed');
+    assert(jeeRes.data.id && jeeRes.data.ai_recommendation?.overall_summary, 'JEE confirm + AI report failed');
 
-    const hscPayload = {
+    const hscRes = await localUploadsAPI.confirmTest({
       test_name: 'Self Entered HSC Exam 1',
       test_date: '2026-02-05',
       test_type: 'Board Exam Class 12th',
@@ -108,91 +167,65 @@ async function runTests() {
         { subject: 'Chemistry', total_questions: 30, attempted: 26, correct: 26, incorrect: 0, unattempted: 4, positive_marks: 86, negative_marks: 0, total_marks: 86, accuracy: 100, percentage: 86, time_spent_seconds: 0 },
       ],
       questions: [],
-    };
-    const hscRes = await req('/api/uploads/confirm', {
-      method: 'POST',
-      headers: { ...authHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify(hscPayload),
     });
-    assert(hscRes.status === 200 && hscRes.body.subject_results.length === 6, 'HSC 6-subject manual entry failed');
-    console.log('✓ 5. Manual JEE Main + HSC 6-subject entry passed');
+    assert(hscRes.data.subject_results.length === 6, 'HSC 6-subject entry failed');
+    console.log('✓ 6. Browser-persisted JEE Main + HSC 6-subject entry + AI report passed');
 
-    // 5. Dashboard & Test Comparison with user-entered tests
-    const dashPop = await req('/api/analysis/dashboard', { headers: authHeaders });
-    assert(dashPop.status === 200 && dashPop.body.total_tests === 2, `Expected 2 user-entered tests, got ${dashPop.body.total_tests}`);
+    // 7. Dashboard, weak topics, subject breakdown, time analytics, comparison & target analysis
+    const dashPop = await localDashboardAPI.getOverview();
+    assert(dashPop.data.total_tests === 2, `Expected 2 tests, got ${dashPop.data.total_tests}`);
+    const weakTopics = await localDashboardAPI.getWeakTopics();
+    assert(weakTopics.data.weak_topics.length >= 1, 'Expected weak topics classification');
+    const breakdown = await localSubjectsAPI.getBreakdown({ subject: 'Physics' });
+    assert(breakdown.data.chapters.length >= 1 && breakdown.data.units.length >= 1, 'Subject breakdown failed');
+    const timeRes = await localTestsAPI.getTimeAnalytics(jeeRes.data.id);
+    assert(timeRes.data.has_question_level_timing && timeRes.data.excessive_time_questions_count === 1, 'Time analytics failed');
+    const compRes = await localPredictionsAPI.compareTests({ test_ids: [jeeRes.data.id, hscRes.data.id] });
+    assert(compRes.data.primary_contributor, 'Test comparison failed');
+    const targetRes = await localPredictionsAPI.getTargetAnalysis();
+    assert(targetRes.data.progression_milestones.length > 0, 'Target analysis failed');
+    console.log('✓ 7. Browser analytics, weak topics, subjects, timing, comparison & target projection passed');
 
-    const compRes = await req('/api/predictions/compare', {
-      method: 'POST',
-      headers: { ...authHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ test_ids: [jeeRes.body.id, hscRes.body.id] }),
-    });
-    assert(compRes.status === 200 && compRes.body.primary_contributor, 'Multi-test comparison failed');
-    console.log('✓ 6. Dashboard analytics & multi-test comparison passed');
-
-    // 6. Multipart CSV Upload Extraction
-    const sampleCsvPath = path.resolve(__dirname, '..', 'sample_tests', 'allen_mock_test_result.csv');
-    if (fs.existsSync(sampleCsvPath)) {
-      const csvBytes = fs.readFileSync(sampleCsvPath);
-      const formData = new FormData();
-      formData.append('file', new Blob([csvBytes], { type: 'text/csv' }), 'allen_mock_test_result.csv');
-      const upRes = await fetch(`${baseUrl}/api/uploads/process`, {
-        method: 'POST',
-        headers: authHeaders,
-        body: formData,
-      });
-      const upBody = await upRes.json();
-      assert(upRes.status === 200 && upBody.questions.length === 75, `CSV extraction failed`);
-      console.log('✓ 7. CSV multipart upload & extraction (75 questions) passed');
+    // 8. Browser CSV offline parser + Reminders + Study Planner CRUD + AI Auto-Plan
+    if (sampleCsvBytes) {
+      const browserParsed = parseCsvTextInBrowser(sampleCsvBytes.toString('utf8'), 'allen_mock_test_result.csv');
+      assert(browserParsed.questions.length === 75, 'Browser CSV fallback parser failed');
     }
+    const rem = await localDashboardAPI.addReminder({ subject: 'Physics', chapter_name: 'Optics', marks_lost: -4, exam_type: 'JEE Main' });
+    await localDashboardAPI.toggleReminder(rem.data.id);
+    await localDashboardAPI.deleteReminder(rem.data.id);
 
-    // 7. Weak Topics Reminders & Study Planner Manual CRUD
-    const addRem = await req('/api/analysis/reminders', {
-      method: 'POST',
-      headers: { ...authHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subject: 'Physics', chapter_name: 'Optics Self Entry', marks_lost: -4, exam_type: 'JEE Main' }),
-    });
-    assert(addRem.status === 200 && addRem.body.id, 'Create weak topic reminder failed');
-    const delRem = await req(`/api/analysis/reminders/${addRem.body.id}`, { method: 'DELETE', headers: authHeaders });
-    assert(delRem.status === 200, 'Delete reminder failed');
+    const regenRes = await localPlannerAPI.regeneratePlan();
+    assert(regenRes.data.tasks.some((t) => t.chapter === 'Rotational Motion'), 'AI auto-plan regeneration failed');
 
-    const addTaskRes = await req('/api/study-planner/tasks', {
-      method: 'POST',
-      headers: { ...authHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ day_of_week: 'Monday', subject: 'Computer Science 1 (CS 1)', chapter: 'C++ Data Structures', duration_hours: 1.5, practice_questions: 25 }),
-    });
-    assert(addTaskRes.status === 200 && addTaskRes.body.duration_minutes === 90, 'Add study task failed');
-    const delTask = await req(`/api/study-planner/tasks/${addTaskRes.body.id}`, { method: 'DELETE', headers: authHeaders });
-    assert(delTask.status === 200, 'Delete study task failed');
+    const task = await localPlannerAPI.addTask({ day_of_week: 'Monday', subject: 'Computer Science 1 (CS 1)', chapter: 'C++ Pointers', duration_hours: 1.5, practice_questions: 25 });
+    await localPlannerAPI.toggleTask(task.data.id);
+    await localPlannerAPI.deleteTask(task.data.id);
 
-    const schedRes = await req('/api/study-planner/tests', {
-      method: 'POST',
-      headers: { ...authHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ test_title: 'Om Mock Notification', exam_type: 'JEE Main', scheduled_date: '2026-03-01', scheduled_time: '09:00 AM', duration_minutes: 180 }),
-    });
-    assert(schedRes.status === 200 && schedRes.body.id, 'Schedule test failed');
-    const delSched = await req(`/api/study-planner/tests/${schedRes.body.id}`, { method: 'DELETE', headers: authHeaders });
-    assert(delSched.status === 200, 'Delete scheduled test failed');
-    console.log('✓ 8. Weak topic reminders & manual study planner + test notifications CRUD passed');
+    const sched = await localPlannerAPI.scheduleTest({ test_title: 'Mock Reminder 1', exam_type: 'JEE Main', scheduled_date: '2026-03-01', scheduled_time: '09:00 AM', duration_minutes: 180 });
+    await localPlannerAPI.toggleScheduledTest(sched.data.id);
+    await localPlannerAPI.deleteScheduledTest(sched.data.id);
+    console.log('✓ 8. Browser CSV fallback + reminders + AI auto-plan + study planner CRUD passed');
 
-    // 8. Clean up temporary smoke tests so DB stays clean for Om Pal
-    await req(`/api/tests/${jeeRes.body.id}`, { method: 'DELETE', headers: authHeaders });
-    await req(`/api/tests/${hscRes.body.id}`, { method: 'DELETE', headers: authHeaders });
-    const dashAfterClean = await req('/api/analysis/dashboard', { headers: authHeaders });
-    assert(dashAfterClean.body.total_tests === 0, 'Test cleanup failed');
-    console.log('✓ 9. Clean teardown leaving empty DB verified');
+    // 9. Clean delete & state persistence check
+    await localTestsAPI.deleteTest(jeeRes.data.id);
+    await localTestsAPI.deleteTest(hscRes.data.id);
+    const dashAfter = await localDashboardAPI.getOverview();
+    assert(dashAfter.data.total_tests === 0, 'Delete cleanup failed');
+    console.log('✓ 9. Test deletion & clean state verification passed');
 
-    console.log('\nALL MERN E2E SMOKE TESTS PASSED SUCCESSFULLY!');
+    console.log('\nALL ZERO-DB WEB STORAGE + STATELESS API E2E TESTS PASSED!');
   } finally {
     if (localServer) {
+      if (typeof localServer.closeAllConnections === 'function') {
+        localServer.closeAllConnections();
+      }
       await new Promise((resolve) => localServer.close(resolve));
-    }
-    if (closeDBFn) {
-      await closeDBFn();
     }
   }
 }
 
 runTests().catch((err) => {
-  console.error('\nSMOKE TEST FAILED:', err);
+  console.error('\nTEST SUITE FAILED:', err);
   process.exit(1);
 });

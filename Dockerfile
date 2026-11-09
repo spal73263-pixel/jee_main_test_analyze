@@ -1,4 +1,4 @@
-# Multi-Stage Dockerfile for Unified MERN Full-Stack Production Deployment
+# Multi-Stage Dockerfile for Full-Stack Production Deployment (Zero Database Required)
 
 # Stage 1: Build the React (Vite) Frontend
 FROM node:20-alpine AS frontend-builder
@@ -10,7 +10,7 @@ RUN npm install --no-audit --no-fund
 COPY frontend/ ./
 RUN npm run build
 
-# Stage 2: Production Node.js + Express Backend
+# Stage 2: Production Node.js + Express Stateless File-Extraction & SPA Server
 FROM node:20-alpine
 
 WORKDIR /app
