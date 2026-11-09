@@ -53,7 +53,15 @@ export const AuthProvider = ({ children }) => {
 
   const updateUserProfile = async (profileData) => {
     const res = await authAPI.updateProfile(profileData);
-    setUser(prev => ({ ...prev, profile: res.data }));
+    setUser(prev => {
+      const updatedUser = {
+        ...prev,
+        full_name: res.data?.full_name || profileData.full_name || prev?.full_name,
+        profile: res.data
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return updatedUser;
+    });
     return res.data;
   };
 

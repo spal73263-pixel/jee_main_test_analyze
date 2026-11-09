@@ -17,8 +17,26 @@ async function formatStudyPlan(planDoc) {
   return planObj;
 }
 
-async function generateDynamicPlan(user) {
+async function createEmptyPlan(user) {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const plan = await StudyPlan.create({
+    user_id: user._id,
+    title: `Weekly Study Plan (Week of ${todayStr})`,
+    week_start_date: todayStr,
+    is_active: true,
+    summary: 'Add your own subjects, chapters, and target study hours for each day of the week.',
+  });
+  return formatStudyPlan(plan);
+}
+
+async function generateDynamicPlanFromTests(user) {
   const chapters = await ChapterPerformance.find({ user_id: user._id });
+
+  if (chapters.length === 0) {
+    const err = new Error('Please enter or upload at least one test first so weak chapters can be identified, or add study sessions manually.');
+    err.statusCode = 400;
+    throw err;
+  }
 
   const chapAcc = new Map();
   for (const c of chapters) {
@@ -36,58 +54,43 @@ async function generateDynamicPlan(user) {
   const weakList = [];
   for (const d of chapAcc.values()) {
     const acc = (d.correct / d.attempted) * 100;
-    if (acc < 65) {
+    if (acc < 75) {
       weakList.push({ subject: d.subject, chapter: d.chapter, acc });
     }
   }
   weakList.sort((a, b) => a.acc - b.acc);
 
-  const defaultRotation = [
-    ['Physics', 'Rotational Motion', 'Moment of inertia theorems and rolling dynamics with PYQs'],
-    ['Chemistry', 'Chemical Bonding and Molecular Structure', 'Hybridization, molecular orbital theory, and dipole moments'],
-    ['Mathematics', 'Integral Calculus', 'Definite integration properties and reduction formulas'],
-    ['Physics', 'Current Electricity', "Kirchhoff's loop rules, potentiometer, and RC circuit transients"],
-    ['Chemistry', 'General Organic Chemistry', 'Resonance structures, hyperconjugation, and acidity orders'],
-    ['Mathematics', 'Matrices and Determinants', "Cramer's rule, inverse properties, and system of equations"],
-    ['All Subjects', 'Full Mock Test', 'Timed 3-hour examination under strict exam conditions'],
-  ];
+  if (weakList.length === 0) {
+    const err = new Error('All logged chapters currently have >= 75% accuracy. Add custom study sessions manually for targeted practice.');
+    err.statusCode = 400;
+    throw err;
+  }
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const todayStr = new Date().toISOString().split('T')[0];
+
+  await StudyPlan.updateMany({ user_id: user._id }, { $set: { is_active: false } });
 
   const plan = await StudyPlan.create({
     user_id: user._id,
     title: `7-Day Targeted Recovery Plan (Week of ${todayStr})`,
     week_start_date: todayStr,
     is_active: true,
-    summary: 'Focused high-yield revision schedule addressing topics with high negative marking and low accuracy.',
+    summary: 'Targeted revision schedule generated strictly from your logged test chapter accuracy.',
   });
 
-  const tasksData = days.map((day, i) => {
-    let sub;
-    let chap;
-    let desc;
-    if (i < weakList.length) {
-      sub = weakList[i].subject;
-      chap = weakList[i].chapter;
-      desc = `Concept revision (${Math.round(weakList[i].acc)}% accuracy in recent tests) + 25 timed practice problems.`;
-    } else {
-      [sub, chap, desc] = defaultRotation[i % defaultRotation.length];
-    }
-
-    return {
-      plan_id: plan._id,
-      user_id: user._id,
-      day_of_week: day,
-      subject: sub,
-      chapter: chap,
-      task_description: desc,
-      duration_minutes: day !== 'Saturday' ? 90 : 180,
-      practice_questions: day !== 'Saturday' ? 25 : 75,
-      revision_topics: 'Formulas, short-notes, and 2021-2025 PYQ error questions.',
-      is_completed: false,
-    };
-  });
+  const tasksData = weakList.slice(0, 7).map((item, i) => ({
+    plan_id: plan._id,
+    user_id: user._id,
+    day_of_week: days[i % days.length],
+    subject: item.subject,
+    chapter: item.chapter,
+    task_description: `Concept revision (${Math.round(item.acc)}% accuracy in your logged tests) + timed practice problems.`,
+    duration_minutes: 90,
+    practice_questions: 25,
+    revision_topics: `Core formulas and error review for ${item.chapter}.`,
+    is_completed: false,
+  }));
 
   await StudyTask.insertMany(tasksData);
   return formatStudyPlan(plan);
@@ -100,8 +103,8 @@ router.get('', requireAuth, async (req, res, next) => {
     });
 
     if (!plan) {
-      const generated = await generateDynamicPlan(req.user);
-      return res.json(generated);
+      const empty = await createEmptyPlan(req.user);
+      return res.json(empty);
     }
 
     const formatted = await formatStudyPlan(plan);
@@ -113,10 +116,12 @@ router.get('', requireAuth, async (req, res, next) => {
 
 router.post('/generate', requireAuth, async (req, res, next) => {
   try {
-    await StudyPlan.updateMany({ user_id: req.user._id }, { $set: { is_active: false } });
-    const generated = await generateDynamicPlan(req.user);
+    const generated = await generateDynamicPlanFromTests(req.user);
     return res.json(generated);
   } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ detail: err.message });
+    }
     next(err);
   }
 });
@@ -161,7 +166,7 @@ router.post('/tasks', requireAuth, async (req, res, next) => {
       generated_date: -1,
     });
     if (!plan) {
-      const created = await generateDynamicPlan(req.user);
+      const created = await createEmptyPlan(req.user);
       plan = await StudyPlan.findById(created.id);
     }
 

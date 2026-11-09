@@ -22,7 +22,14 @@ import {
 import { plannerAPI } from '../services/api';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const SUBJECTS = ['Physics', 'Chemistry', 'Mathematics'];
+const SUBJECTS = [
+  'Physics',
+  'Chemistry',
+  'Mathematics',
+  'Computer Science 1 (CS 1)',
+  'Computer Science 2 (CS 2)',
+  'English'
+];
 const EXAM_TYPES = ['JEE Main', 'JEE Advanced', 'Board Exam Class 12th'];
 
 const StudyPlanner = () => {
@@ -268,7 +275,7 @@ const StudyPlanner = () => {
       const res = await plannerAPI.regeneratePlan();
       setPlan(res.data);
     } catch (err) {
-      alert('Failed to regenerate plan: ' + err.message);
+      alert(err.response?.data?.detail || ('Failed to regenerate plan: ' + err.message));
     } finally {
       setRegenerating(false);
     }

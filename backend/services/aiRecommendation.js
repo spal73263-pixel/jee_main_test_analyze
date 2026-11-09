@@ -101,28 +101,28 @@ async function generateAIRecommendationReport(testId) {
     }
   }
 
+  const subjectNames = subjects.map((s) => s.subject);
+  const focusSubjectsLabel = subjectNames.length > 0 ? subjectNames.slice(0, 3).join(', ') : topFocusSubject;
+
   const improvementAreas =
-    `1. Accuracy Lockdown in ${topFocusSubject}: Cease unconfident guesses where 2 options cannot be eliminated.\n` +
-    `2. Conceptual Revision in: ${weakChapters.length > 0 ? weakChapters.slice(0, 2).join(', ') : 'Applied Electrodynamics and Calculus'}.\n` +
-    `3. Exam Temperament: Complete Section A (Easy MCQs) in the first 45 minutes to build momentum.`;
+    `1. Accuracy Lockdown in ${topFocusSubject}: Prioritize high-confidence attempts and eliminate avoidable errors.\n` +
+    `2. Targeted Revision in: ${weakChapters.length > 0 ? weakChapters.slice(0, 2).join(', ') : `${topFocusSubject} core chapters`}.\n` +
+    `3. Exam Temperament: Complete high-weightage straightforward questions first to build momentum.`;
 
   const revisionTopics =
     weakChapters.length > 0
       ? weakChapters.slice(0, 4).join(', ')
-      : 'Modern Physics, Coordination Compounds, Matrices';
+      : focusSubjectsLabel;
 
   const recQuestions =
-    `Solve 25 PYQs each in: ${weakChapters.length > 0 ? weakChapters.slice(0, 3).join(', ') : 'Mechanics, Physical Equilibrium, Integral Calculus'}. ` +
-    `Focus on JEE Main 2022-2025 past papers with strict timer mode.`;
+    `Practice past paper questions in: ${weakChapters.length > 0 ? weakChapters.slice(0, 3).join(', ') : focusSubjectsLabel} ` +
+    `with strict timed review.`;
 
   const sevenDayPlan =
-    `Monday: Physics ${weakChapters[0] || 'Mechanics'} revision + 20 PYQs\n` +
-    `Tuesday: Chemistry ${weakChapters[1] || 'Chemical Bonding'} revision + 20 PYQs\n` +
-    `Wednesday: Mathematics ${weakChapters[2] || 'Calculus'} practice + 20 PYQs\n` +
-    `Thursday: Error Notebook analysis & formula speed run\n` +
-    `Friday: Timed mixed chapter test (30 questions, 60 minutes)\n` +
-    `Saturday: Full Mock Test under simulated JEE exam conditions\n` +
-    `Sunday: Mock Test post-mortem and weak concept notes review`;
+    `Focus Day 1-2: Revise ${weakChapters[0] || topFocusSubject} concepts + timed problems\n` +
+    `Focus Day 3-4: Error notebook analysis across ${subjectNames[1] || topFocusSubject}\n` +
+    `Focus Day 5-6: Mixed chapter practice set under exam timer\n` +
+    `Focus Day 7: Full review of mistakes and formula summary notes`;
 
   const updated = await AIRecommendation.findOneAndUpdate(
     { test_id: test._id },

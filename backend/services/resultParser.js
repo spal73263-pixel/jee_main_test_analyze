@@ -95,16 +95,16 @@ function parseSubjectsFromRawText(text) {
         subjects.push({
           subject: name,
           total_questions: 25,
-          attempted: 18,
-          correct: 14,
-          incorrect: 4,
-          unattempted: 7,
-          positive_marks: 56.0,
-          negative_marks: 4.0,
-          total_marks: 52.0,
-          accuracy: 77.78,
-          percentage: 52.0,
-          time_spent_seconds: 3600,
+          attempted: 0,
+          correct: 0,
+          incorrect: 0,
+          unattempted: 25,
+          positive_marks: 0.0,
+          negative_marks: 0.0,
+          total_marks: 0.0,
+          accuracy: 0.0,
+          percentage: 0.0,
+          time_spent_seconds: 0,
         });
       }
     }
@@ -321,7 +321,6 @@ async function parseExcelFile(filePath, filename) {
   const worksheet = workbook.Sheets[targetSheet];
   const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
   if (!rows || rows.length === 0 || (rows.length === 1 && Object.keys(rows[0]).length <= 1)) {
-    // Handle dummy placeholder string in Excel quick-sample button cleanly
     return {
       test_name: formatBaseName(filename),
       test_date: todayIsoDate(),
@@ -330,15 +329,15 @@ async function parseExcelFile(filePath, filename) {
       duration_minutes: 180,
       total_questions: 75,
       max_marks: 300.0,
-      marks_obtained: 156.0,
+      marks_obtained: 0.0,
       official_percentile: null,
       official_rank: null,
       subjects: parseSubjectsFromRawText(''),
       questions: [],
       extraction_source: `Excel Spreadsheet (${targetSheet})`,
       confidence_level: 'partial',
-      warnings: ['Uploaded file had minimal rows; pre-populated template for manual review.'],
-      missing_fields: ['Please verify subject scores before saving'],
+      warnings: ['Uploaded file had minimal structured rows; enter your actual subject marks below before saving.'],
+      missing_fields: ['Please enter subject scores before saving'],
       validation_status: 'needs_review',
     };
   }

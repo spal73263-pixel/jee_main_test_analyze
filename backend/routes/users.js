@@ -112,13 +112,20 @@ router.put('/profile', requireAuth, async (req, res, next) => {
       }
     }
 
+    if (req.body && req.body.full_name && String(req.body.full_name).trim() !== '') {
+      req.user.full_name = String(req.body.full_name).trim();
+      await req.user.save();
+    }
+
     const profile = await StudentProfile.findOneAndUpdate(
       { user_id: req.user._id },
       { $set: updates, $setOnInsert: { user_id: req.user._id } },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    return res.json(profile.toObject());
+    const out = profile.toObject();
+    out.full_name = req.user.full_name;
+    return res.json(out);
   } catch (err) {
     next(err);
   }

@@ -19,6 +19,7 @@ const ProfileSettings = () => {
   const profile = user?.profile || {};
 
   const [formData, setFormData] = useState({
+    full_name: user?.full_name || 'Om Pal',
     target_year: 2026,
     target_attempt: 'January & April',
     target_percentile: 99.0,
@@ -35,8 +36,9 @@ const ProfileSettings = () => {
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    if (profile && Object.keys(profile).length > 0) {
+    if (user || (profile && Object.keys(profile).length > 0)) {
       setFormData({
+        full_name: user?.full_name || 'Om Pal',
         target_year: profile.target_year || 2026,
         target_attempt: profile.target_attempt || 'January & April',
         target_percentile: profile.target_percentile || 99.0,
@@ -48,7 +50,7 @@ const ProfileSettings = () => {
         target_exam_date: profile.target_exam_date || '2026-01-24',
       });
     }
-  }, [profile]);
+  }, [user, profile]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -102,15 +104,22 @@ const ProfileSettings = () => {
 
       {/* Profile Form */}
       <form onSubmit={handleSave} className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-6">
-        {/* Personal Details (Read Only) */}
+        {/* Personal Details */}
         <div className="pb-6 border-b border-slate-100">
           <h3 className="text-sm font-bold text-slate-900 mb-3">Student Account Information</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Student Name</label>
-              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-800">
-                <User className="w-4 h-4 text-slate-400" />
-                <span>{user?.full_name || 'Aarav Sharma'}</span>
+              <div className="relative flex items-center">
+                <User className="w-4 h-4 text-slate-400 absolute left-3" />
+                <input
+                  type="text"
+                  name="full_name"
+                  required
+                  value={formData.full_name}
+                  onChange={handleChange}
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-300 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
               </div>
             </div>
 
@@ -118,7 +127,7 @@ const ProfileSettings = () => {
               <label className="block text-xs font-semibold text-slate-500 mb-1">Registered Email</label>
               <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-800">
                 <Mail className="w-4 h-4 text-slate-400" />
-                <span>{user?.email || 'demo@jeemain.ai'}</span>
+                <span>{user?.email || ''}</span>
               </div>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   GitCompare,
   TrendingUp,
@@ -6,7 +7,8 @@ import {
   Sparkles,
   ArrowRight,
   CheckCircle2,
-  Calendar
+  Calendar,
+  UploadCloud
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -23,6 +25,7 @@ import {
 import { testsAPI, predictionsAPI } from '../services/api';
 
 const TestComparison = () => {
+  const navigate = useNavigate();
   const [allTests, setAllTests] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [comparison, setComparison] = useState(null);
@@ -93,32 +96,47 @@ const TestComparison = () => {
         <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
           Select Tests to Compare ({selectedIds.length} Selected)
         </p>
-        <div className="flex flex-wrap gap-2">
-          {allTests.map(t => {
-            const isSelected = selectedIds.includes(t.id);
-            return (
-              <button
-                key={t.id}
-                onClick={() => handleToggleTest(t.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
-                  isSelected
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                <div className={`w-3.5 h-3.5 rounded flex items-center justify-center border ${
-                  isSelected ? 'border-white bg-white/20' : 'border-slate-400'
-                }`}>
-                  {isSelected && <span className="text-[10px] leading-none">✓</span>}
-                </div>
-                <span>{t.test_name}</span>
-                <span className={`text-[10px] font-semibold ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
-                  ({t.marks_obtained} M)
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {allTests.length < 2 ? (
+          <div className="py-8 text-center space-y-3">
+            <p className="text-xs sm:text-sm text-slate-500">
+              You currently have {allTests.length} test{allTests.length === 1 ? '' : 's'} logged. Add at least 2 tests to compare scores side-by-side.
+            </p>
+            <button
+              onClick={() => navigate('/upload')}
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors"
+            >
+              <UploadCloud className="w-4 h-4" />
+              <span>Enter Test Results</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {allTests.map(t => {
+              const isSelected = selectedIds.includes(t.id);
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => handleToggleTest(t.id)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
+                    isSelected
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className={`w-3.5 h-3.5 rounded flex items-center justify-center border ${
+                    isSelected ? 'border-white bg-white/20' : 'border-slate-400'
+                  }`}>
+                    {isSelected && <span className="text-[10px] leading-none">✓</span>}
+                  </div>
+                  <span>{t.test_name}</span>
+                  <span className={`text-[10px] font-semibold ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
+                    ({t.marks_obtained} M)
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {loading ? (

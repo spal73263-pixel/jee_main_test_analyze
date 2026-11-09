@@ -107,9 +107,10 @@ const TestHistory = () => {
             className="px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
           >
             <option value="All">All Types</option>
+            <option value="JEE Main">JEE Main</option>
+            <option value="JEE Advanced">JEE Advanced</option>
+            <option value="Board Exam Class 12th">Board Exam Class 12th</option>
             <option value="Mock Test">Mock Test</option>
-            <option value="JEE Main Official">JEE Main Official</option>
-            <option value="Practice Test">Practice Test</option>
           </select>
         </div>
       </div>
@@ -165,7 +166,7 @@ const TestHistory = () => {
                         {subs.Mathematics !== undefined ? subs.Mathematics : '—'}
                       </td>
                       <td className="py-3.5 px-3 text-center font-extrabold text-indigo-700 text-sm">
-                        {t.marks_obtained} <span className="text-[10px] font-normal text-slate-400">/ 300</span>
+                        {t.marks_obtained} <span className="text-[10px] font-normal text-slate-400">/ {t.max_marks || 300}</span>
                       </td>
                       <td className="py-3.5 px-3 text-center font-bold text-slate-800">
                         {t.overall_accuracy}%

@@ -161,6 +161,9 @@ const WeakTopics = () => {
                   <option value="Physics">Physics</option>
                   <option value="Chemistry">Chemistry</option>
                   <option value="Mathematics">Mathematics</option>
+                  <option value="Computer Science 1 (CS 1)">Computer Science 1 (CS 1)</option>
+                  <option value="Computer Science 2 (CS 2)">Computer Science 2 (CS 2)</option>
+                  <option value="English">English</option>
                 </select>
               </div>
 

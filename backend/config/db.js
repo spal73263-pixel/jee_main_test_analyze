@@ -88,7 +88,7 @@ async function connectDB() {
           await mongoose.disconnect().catch(() => {});
         }
         const memUri = await startLocalMemoryMongo();
-        await mongoose.connect(memUri);
+        await mongoose.connect(memUri, { serverSelectionTimeoutMS: 4000 });
         return mongoose.connection;
       }
     } catch (err) {

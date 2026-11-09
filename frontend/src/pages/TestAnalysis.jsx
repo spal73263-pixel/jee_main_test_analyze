@@ -150,13 +150,18 @@ const TestAnalysis = () => {
           <select
             value={selectedTestId}
             onChange={(e) => handleSelectTest(e.target.value)}
-            className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+            disabled={filteredTests.length === 0}
+            className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-60"
           >
-            {filteredTests.map(t => (
-              <option key={t.id} value={t.id}>
-                [{t.test_type}] {t.test_name} ({t.test_date}) - {t.marks_obtained} M
-              </option>
-            ))}
+            {filteredTests.length === 0 ? (
+              <option value="">No tests logged yet</option>
+            ) : (
+              filteredTests.map(t => (
+                <option key={t.id} value={t.id}>
+                  [{t.test_type}] {t.test_name} ({t.test_date}) - {t.marks_obtained} M
+                </option>
+              ))
+            )}
           </select>
         </div>
 

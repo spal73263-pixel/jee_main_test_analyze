@@ -101,7 +101,7 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Quick Demo Login Option */}
+          {/* Quick Sign-In Option */}
           <div className="mt-6 pt-5 border-t border-slate-100">
             <button
               type="button"
@@ -109,10 +109,10 @@ const Login = () => {
               className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/70 text-indigo-700 text-xs font-semibold transition-all"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Fill Pre-Seeded Demo Student Account</span>
+              <span>Quick Fill Om Pal Account</span>
             </button>
             <p className="text-[11px] text-slate-400 text-center mt-2">
-              demo@jeemain.ai • password123 (Contains 3 realistic seeded mock tests)
+              demo@jeemain.ai • password123 (Clean account — enter your own tests & plans)
             </p>
           </div>
 

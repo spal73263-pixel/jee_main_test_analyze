@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard,
   UploadCloud,
@@ -28,6 +29,9 @@ const navItems = [
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {
+  const { user } = useAuth();
+  const profile = user?.profile || {};
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -102,13 +106,13 @@ const Sidebar = ({ isOpen, onClose }) => {
         <div className="p-4 border-t border-slate-100 bg-slate-50/60">
           <div className="rounded-xl bg-white p-3 border border-slate-200/80 shadow-xs">
             <div className="flex items-center justify-between text-xs text-slate-500 font-medium mb-1">
-              <span>Target 2026</span>
-              <span className="text-indigo-600 font-bold">99.0+ %ile</span>
+              <span>Target {profile.target_year || 2026}</span>
+              <span className="text-indigo-600 font-bold">{profile.target_percentile || 99.0}+ %ile</span>
             </div>
-            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-              <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: '74%' }} />
+            <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1.5 font-medium">
+              <span>{profile.daily_study_hours || 6.5} hrs/day</span>
+              <span>Goal: {profile.target_marks || 220} Marks</span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1.5 text-right font-medium">Goal: 220 Marks</p>
           </div>
         </div>
       </aside>
