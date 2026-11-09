@@ -1,0 +1,11 @@
+.git
+**/node_modules
+frontend/dist
+backend/__pycache__
+backend/**/__pycache__
+backend/*.db
+backend/*.sqlite3
+backend/uploads/*
+!backend/uploads/.gitkeep
+.vscode
+.idea

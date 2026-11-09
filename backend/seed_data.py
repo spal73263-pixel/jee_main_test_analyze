@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime, timedelta
 import random
 from database import SessionLocal, Base, engine
@@ -6,7 +7,7 @@ from auth import get_password_hash
 from services.performance_analyzer import compute_and_save_test_analysis
 from services.ai_recommendation import generate_ai_recommendation_report
 
-def seed():
+def seed(force_reset: bool = False):
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
@@ -14,6 +15,9 @@ def seed():
         # Check if demo user already exists
         user = db.query(models.User).filter(models.User.email == "demo@jeemain.ai").first()
         if user:
+            if not force_reset:
+                print("Demo user already exists, skipping seed.")
+                return
             print("Refreshing demo student tests & reminders...")
             db.delete(user)
             db.commit()
@@ -354,4 +358,4 @@ def seed():
         db.close()
 
 if __name__ == "__main__":
-    seed()
+    seed(force_reset="--reset" in sys.argv)

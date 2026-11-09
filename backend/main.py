@@ -19,6 +19,13 @@ from routes import (
 # Create database tables if they do not exist
 Base.metadata.create_all(bind=engine)
 
+# Automatically seed demo account if database is empty
+try:
+    from seed_data import seed
+    seed(force_reset=False)
+except Exception as e:
+    print(f"Auto-seed note: {e}")
+
 app = FastAPI(
     title="JEE Main Performance Analyzer API",
     description="Production-quality REST backend for JEE Main mock test extraction, analytics, and AI recommendations.",

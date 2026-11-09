@@ -139,24 +139,17 @@ Test files formatted for immediate upload testing are available in `/sample_test
 
 ---
 
-## 🌐 Production Deployment Guide
+## 🌐 Simple Permanent Cloud Deployment (No Credit Card Needed)
 
-### Backend (Render / Railway)
-1. Set the Root Directory to `backend/`.
-2. Build Command: `pip install -r requirements.txt`.
-3. Start Command: `uvicorn main:app --host 0.0.0.0 --port $PORT`.
-4. Environment Variables:
-   - `DATABASE_URL`: Your PostgreSQL / Supabase connection string.
-   - `JWT_SECRET`: A long random secret key.
+### 1-Click Render Deployment (Frontend + Backend + Database Together)
+Click the link below to deploy the entire full-stack application to Render in one step:
 
-### Frontend (Vercel / Netlify)
-1. Set the Root Directory to `frontend/`.
-2. Build Command: `npm run build`.
-3. Output Directory: `dist`.
-4. Add rewrites for Single Page Application routing:
-   - In `vercel.json`:
-     ```json
-     {
-       "rewrites": [{ "source": "/(.*)", "destination": "/" }]
-     }
-     ```
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/spal73263-pixel/jee_main_test_analyze)
+
+Or manually on [render.com](https://render.com):
+1. Click **New +** -> **Blueprint** (or **Web Service**).
+2. Connect GitHub repository `spal73263-pixel/jee_main_test_analyze`.
+3. Select **Apply** (automatically reads `render.yaml` & `Dockerfile` to deploy both React frontend and Python FastAPI backend together into one permanent URL).
+
+### Instant Windows Local Launch
+Double-click `Open_JEE_Analyzer.bat` in the project folder to launch the server and open `http://localhost:8000` automatically with zero terminal setup.

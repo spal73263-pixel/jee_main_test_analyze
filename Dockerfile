@@ -39,4 +39,4 @@ WORKDIR /app/backend
 ENV PORT=8000
 EXPOSE 8000
 
-CMD ["sh", "-c", "python seed_data.py && uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "python seed_data.py && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
