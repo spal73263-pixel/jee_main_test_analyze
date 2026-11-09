@@ -37,19 +37,77 @@ async function startLocalMemoryMongo() {
   return uri;
 }
 
-async function connectWithRetry(uri, maxAttempts = 5, delayMs = 2000) {
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+function normalizeMongoConnection(rawUri) {
+  const trimmed = String(rawUri || '').trim();
+  const schemeMatch = trimmed.match(/^(mongodb(?:\+srv)?:\/\/)(.+)$/);
+  if (!schemeMatch) {
+    return { uri: trimmed, dbName: undefined };
+  }
+
+  const scheme = schemeMatch[1];
+  const rest = schemeMatch[2];
+  const authMatch = rest.match(
+    /^([^:]+):(.+)@([a-zA-Z0-9.-]+(?::\d+)?(?:,[a-zA-Z0-9.-]+(?::\d+)?)*)(\/.*|\?.*)?$/
+  );
+
+  let uri = trimmed;
+  let tail = '';
+  if (authMatch) {
+    const user = authMatch[1];
+    let pass = authMatch[2];
+    const host = authMatch[3];
+    tail = authMatch[4] || '';
+
+    try {
+      pass = decodeURIComponent(pass);
+    } catch {
+      // Raw unencoded characters such as % in password
+    }
+    uri = `${scheme}${encodeURIComponent(decodeURIComponentSafe(user))}:${encodeURIComponent(pass)}@${host}${tail}`;
+  } else {
+    const slashIdx = rest.indexOf('/');
+    tail = slashIdx !== -1 ? rest.slice(slashIdx) : '';
+  }
+
+  const pathOnly = tail.split('?')[0].replace(/^\/+/, '');
+  return {
+    uri,
+    dbName: pathOnly ? undefined : 'jee_analyzer',
+  };
+}
+
+function decodeURIComponentSafe(val) {
+  try {
+    return decodeURIComponent(val);
+  } catch {
+    return val;
+  }
+}
+
+async function connectWithRetry(rawUri, maxAttempts = 5, delayMs = 2000) {
+  const { uri, dbName } = normalizeMongoConnection(rawUri);
+  const attempts = IS_VERCEL ? Math.min(maxAttempts, 2) : maxAttempts;
+  const retryDelay = IS_VERCEL ? 1000 : delayMs;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
       await mongoose.connect(uri, {
-        serverSelectionTimeoutMS: uri.includes('127.0.0.1') ? 2500 : 10000,
+        serverSelectionTimeoutMS: uri.includes('127.0.0.1') ? 2500 : 7500,
+        ...(dbName ? { dbName } : {}),
       });
       return mongoose.connection;
     } catch (err) {
-      console.error(`MongoDB connect attempt ${attempt}/${maxAttempts} failed:`, err.message);
-      if (attempt === maxAttempts) {
+      console.error(`MongoDB connect attempt ${attempt}/${attempts} failed:`, err.message);
+      if (attempt === attempts) {
+        const errMsg = String(err.message || '');
+        if (IS_VERCEL && (errMsg.includes('whitelist') || errMsg.includes('Server selection') || errMsg.includes('ECONNREFUSED'))) {
+          throw new Error(
+            `Could not connect to MongoDB Atlas (${errMsg}). In MongoDB Atlas -> Network Access, add IP 0.0.0.0/0 (Allow Access from Anywhere) and verify MONGODB_URI.`
+          );
+        }
         throw err;
       }
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
     }
   }
 }
