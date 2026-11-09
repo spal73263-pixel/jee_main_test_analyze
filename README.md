@@ -141,7 +141,15 @@ Test files formatted for immediate upload testing are available in `/sample_test
 
 ## 🌐 Simple Permanent Cloud Deployment (No Credit Card Needed)
 
-### 1-Click Render Deployment (Frontend + Backend + Database Together)
+### Option 1: Single-Project Vercel Deployment (Frontend + Backend Together)
+Deploy both React (`frontend/dist`) and FastAPI (`api/index.py`) inside **one single Vercel project**:
+1. On Vercel -> **Add New Project** -> Import `spal73263-pixel/jee_main_test_analyze`.
+2. **Keep Root Directory as `./` (repository root — do NOT pick `frontend` or `backend`!)**.
+3. Leave Framework Preset as **Other** (root `vercel.json` builds `frontend/` and deploys `api/index.py` together automatically).
+4. Click **Deploy**!
+*(Optional for permanent cloud DB across serverless restarts: add a free PostgreSQL `DATABASE_URL` from Neon/Supabase in Vercel Environment Variables).*
+
+### Option 2: 1-Click Render Deployment (Frontend + Backend + Postgres Together)
 Click the link below to deploy the entire full-stack application to Render in one step:
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/spal73263-pixel/jee_main_test_analyze)
