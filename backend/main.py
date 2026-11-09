@@ -1,4 +1,5 @@
 import os
+import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -16,15 +17,19 @@ from routes import (
     study_planner
 )
 
-# Create database tables if they do not exist
-Base.metadata.create_all(bind=engine)
+def init_db_with_retry(max_attempts: int = 5, delay_seconds: float = 2.0):
+    for attempt in range(1, max_attempts + 1):
+        try:
+            Base.metadata.create_all(bind=engine)
+            from seed_data import seed
+            seed(force_reset=False)
+            return
+        except Exception as e:
+            print(f"Database init attempt {attempt}/{max_attempts} note: {e}")
+            if attempt < max_attempts:
+                time.sleep(delay_seconds)
 
-# Automatically seed demo account if database is empty
-try:
-    from seed_data import seed
-    seed(force_reset=False)
-except Exception as e:
-    print(f"Auto-seed note: {e}")
+init_db_with_retry()
 
 app = FastAPI(
     title="JEE Main Performance Analyzer API",
@@ -68,8 +73,9 @@ from fastapi.responses import FileResponse
 from fastapi import HTTPException
 
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+FRONTEND_DIST_RESOLVED = FRONTEND_DIST.resolve() if FRONTEND_DIST.exists() else None
 
-if FRONTEND_DIST.exists():
+if FRONTEND_DIST_RESOLVED is not None:
     # Mount assets folder
     assets_dir = FRONTEND_DIST / "assets"
     if assets_dir.exists():
@@ -80,10 +86,11 @@ if FRONTEND_DIST.exists():
         # Do not intercept API or static uploads
         if full_path.startswith("api") or full_path.startswith("static"):
             raise HTTPException(status_code=404, detail="Not Found")
-        
-        target_file = FRONTEND_DIST / full_path
-        if target_file.is_file():
-            return FileResponse(target_file)
+
+        if full_path:
+            target_file = (FRONTEND_DIST / full_path).resolve()
+            if target_file.is_relative_to(FRONTEND_DIST_RESOLVED) and target_file.is_file():
+                return FileResponse(target_file)
         return FileResponse(FRONTEND_DIST / "index.html")
 
 if __name__ == "__main__":

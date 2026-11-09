@@ -352,7 +352,41 @@ def seed(force_reset: bool = False):
             db.add(rem)
         db.commit()
 
-        print("Successfully seeded realistic JEE Main, JEE Advanced, Board Class 12th tests & weak topic reminders!")
+        # Seed initial Scheduled Mock Test Reminders
+        today = datetime.now().date()
+        scheduled_tests_data = [
+            (
+                "JEE Main Full Syllabus Mock 04",
+                "JEE Main",
+                (today + timedelta(days=1)).strftime("%Y-%m-%d"),
+                "09:00 AM",
+                180,
+                "Physics: Mechanics & Electrostatics; Chemistry: Full; Maths: Calculus & Algebra"
+            ),
+            (
+                "HSC Class 12th Computer Science & Maths Practice",
+                "Board Exam Class 12th",
+                (today + timedelta(days=4)).strftime("%Y-%m-%d"),
+                "10:30 AM",
+                180,
+                "Mathematics Part 1 & 2, CS 1 (C++ & Data Structures), CS 2 (8085 Microprocessor)"
+            )
+        ]
+        for title, etype, sdate, stime, dur, syl in scheduled_tests_data:
+            st = models.ScheduledTestReminder(
+                user_id=user.id,
+                test_title=title,
+                exam_type=etype,
+                scheduled_date=sdate,
+                scheduled_time=stime,
+                duration_minutes=dur,
+                syllabus_chapters=syl,
+                is_completed=False
+            )
+            db.add(st)
+        db.commit()
+
+        print("Successfully seeded realistic JEE Main, JEE Advanced, Board Class 12th tests & reminders!")
 
     finally:
         db.close()
