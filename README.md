@@ -141,13 +141,13 @@ Test files formatted for immediate upload testing are available in `/sample_test
 
 ## 🌐 Simple Permanent Cloud Deployment (No Credit Card Needed)
 
-### Option 1: Single-Project Vercel Deployment (Frontend + Backend Together)
-Deploy both React (`frontend/dist`) and FastAPI (`api/index.py`) inside **one single Vercel project**:
+### Option 1: Single-Project Vercel Services Deployment (Frontend + Backend Together)
+Deploy both **`frontend`** (Vite/React) and **`backend`** (FastAPI) inside **one single Vercel project** via [Vercel Services](https://vercel.com/docs/services):
 1. On Vercel -> **Add New Project** -> Import `spal73263-pixel/jee_main_test_analyze`.
-2. **Keep Root Directory as `./` (repository root — do NOT pick `frontend` or `backend`!)**.
-3. Leave Framework Preset as **Other** (root `vercel.json` builds `frontend/` and deploys `api/index.py` together automatically).
-4. Click **Deploy**!
-*(Optional for permanent cloud DB across serverless restarts: add a free PostgreSQL `DATABASE_URL` from Neon/Supabase in Vercel Environment Variables).*
+2. **Keep Root Directory as `./` (repository root)**.
+3. Root `vercel.json` defines both `frontend` (`root: "frontend"`) and `backend` (`root: "backend"`) services automatically, routing `/api/(.*)` and `/static/(.*)` to `backend` and `/(.*)` to `frontend`.
+4. Click **Deploy** (or test locally with `vercel dev`).
+*(Optional for permanent cloud DB across serverless cold starts: add a free PostgreSQL `DATABASE_URL` from Neon/Supabase in Vercel Environment Variables).*
 
 ### Option 2: 1-Click Render Deployment (Frontend + Backend + Postgres Together)
 Click the link below to deploy the entire full-stack application to Render in one step:
