@@ -1,163 +1,96 @@
-# JEE Main AI Test Analysis & Performance Dashboard
+# JEE Main, JEE Advanced & HSC Class 12th AI Test Analysis Dashboard (MERN Stack)
 
-A full-stack, production-quality educational web application designed for JEE Main aspirants. The platform empowers students to upload mock test scorecards (in **PDF, Screenshot OCR, CSV, or Excel** formats), automatically extract and validate results, inspect question-level analytics, detect weak and strong syllabus chapters, manage exam pacing, compare test-to-test growth, track target percentile trajectories, and receive AI-generated personalized study plans.
+A full-stack **MERN (MongoDB, Express.js, React, Node.js)** educational web application designed for JEE Main, JEE Advanced, and HSC Class 12th aspirants. The platform empowers students to manually log subject marks or upload mock test scorecards (**PDF, Screenshot OCR, CSV, or Excel**), inspect question-level and 12-point AI diagnostic reports, track weak topic & marks reminders, compare test-to-test growth curves, and plan weekly study hours with browser mock test notifications.
 
 ---
 
 ## 🌟 Key Features
 
-### 1. Multi-Format Mock Test Extraction & Verification System
-- **Supported Formats**: Multi-page PDF reports (e.g. Allen, Resonance, FIITJEE, NTA scorecards), Spreadsheet logs (`.csv`, `.xlsx`), and Screenshot images (`.png`, `.jpg`).
-- **Pipeline**:
-  1. Automatic format detection.
-  2. OCR preprocessing via **OpenCV** (adaptive thresholding, noise reduction) and text extraction.
-  3. Structured tabular parsing via **pdfplumber** and **Pandas / OpenPyXL**.
-  4. Marking scheme validation ($Total = Correct \times 4 - Incorrect \times 1$).
-  5. **Human-in-the-Loop Preview & Verification**: An interactive review modal displays extracted fields and allows students to correct or verify uncertain values before saving.
-  6. Automatic dashboard recalculation.
+### 1. Manual Exam Marks & Multi-Format Scorecard Extraction
+- **Manual Marks Entry**:
+  - **JEE Main** & **JEE Advanced**: Physics, Chemistry, Mathematics (supports direct marks or auto-calculated +4/-1 via Correct/Incorrect inputs).
+  - **HSC / Board Exam Class 12th**: 6 dedicated subjects (**Mathematics**, **Computer Science 1 (CS 1)**, **Computer Science 2 (CS 2)**, **English**, **Physics**, **Chemistry**).
+- **Supported Upload Formats**: Coaching PDFs (Allen, Resonance, FIITJEE, NTA scorecards), spreadsheets (`.csv`, `.xlsx`, `.xls`), and score screenshots (`.png`, `.jpg`, `.jpeg`).
+- **Interactive Preview Verification Modal**: Review and edit extracted subject breakdown fields before saving and generating AI analysis.
 
 ### 2. Main Dashboard & KPI Overview
-- 8 Performance Metric Cards: Total Tests Attempted, Average Marks, Highest Marks, Lowest Marks, Average Accuracy, Official Percentile, Latest Test Score, and Overall Performance Improvement.
-- Interactive Recharts Visualizations:
-  - Marks Progression Line Chart (Physics, Chemistry, Maths trajectories).
-  - Attempt Quality Donut Chart (Correct, Incorrect, Unattempted).
-  - Subject-Wise Comparison Bar Chart (Average Marks & Negative Penalty Drain).
-  - Accuracy & Attempt Rate Area Chart.
+- 8 Performance Metric Cards: Tests Attempted, Average Marks, Highest Marks, Lowest Marks, Average Accuracy, Avg Percentile, Latest Test Score, and Overall Improvement.
+- Recharts Visualizations: Marks Progression Line Chart, Attempt Quality Donut Chart, Subject-Wise Comparison Bar Chart, and Accuracy & Attempt Rate Area Chart.
 
-### 3. Subject & Chapter Deep Dives
-- Dedicated Physics, Chemistry, and Mathematics tabs.
-- Full JEE Main syllabus unit mapping:
-  - **Physics**: Mechanics, Electrodynamics, Modern Physics, Optics, Thermodynamics, Waves and Oscillations, Units & Measurements.
-  - **Chemistry**: Physical, Organic, and Inorganic Chemistry.
-  - **Mathematics**: Calculus, Algebra, Coordinate Geometry, Trigonometry, Vectors & 3D Geometry, Probability & Statistics, Matrices.
-- Search and filter chapters by syllabus category and mastery level.
+### 3. Test Analysis & 12-Point AI Diagnostic Report
+- Exam switcher tabs for **All Examinations**, **JEE Main**, **JEE Advanced**, and **Board Exam Class 12th**.
+- Subject breakdown cards, 12-point diagnostic breakdown (strengths, weaknesses, negative marking penalty recovery, improvement roadmap), and filterable Question-Level Log.
 
-### 4. Weak Topic & Mistake Diagnostic
-- Threshold Classification:
-  - **Strong**: $\ge 80\%$ accuracy
-  - **Average**: $50\% - 79\%$ accuracy
-  - **Weak**: $< 50\%$ accuracy
-- Negative marking root causes and repeated mistake warnings with actionable recommendations.
+### 4. Weak Topics & Persistent Marks Reminders Notebook
+- Automatic classification into **Weak (<50%)**, **Average (50–79%)**, and **Strong (≥80%)** chapters plus repeated mistake alerts.
+- Log custom weak topic & marks lost reminders (`Subject`, `Chapter Name`, `Marks Lost`, `Exam Context`, `Revision Notes`) with resolve toggles and deletion.
 
-### 5. Time Management Intelligence
-- Exam pacing analysis (Total duration, average time per attempted question).
-- Speed vs. accuracy evaluation.
-- Detection of high-drain questions taking excessive time ($> 3.5$ minutes).
-- Productive time vs. negative mistake time loss.
+### 5. Multi-Test Comparison Engine
+- Select 2+ tests side-by-side to evaluate total marks deltas, subject deltas, score/accuracy growth curves, and the **Primary Growth Contributor** subject.
 
-### 6. Multi-Test Comparison Engine
-- Select any two or more tests to evaluate progress side-by-side.
-- Score deltas, accuracy changes, and automatic identification of the **Primary Subject Contributor** driving growth.
+### 6. Weekly Study Planner & Mock Test Notifications
+- Plan weekly study sessions by **Day (Mon–Sun)**, **Subject**, **Chapter**, **Study Hours**, and **Practice PYQs** with day filtering and 1-click **AI Auto-Plan** regeneration.
+- Schedule upcoming mock tests (`JEE Main`, `JEE Advanced`, `Board Exam Class 12th`) with **TODAY / TOMORROW** countdown badges and live Browser Web Notifications.
 
-### 7. Target Predictor & Milestones
-- Set target marks, target percentile, and target exam attempt date.
-- Score gap analysis and required growth rate per test.
-- Calibrated growth trajectory model with uncertainty boundaries ($\pm 8$ Marks).
-- **Statistical Disclaimer**: Clarifies that percentiles depend on shift difficulty and cohort normalization, distinguishing data-backed historical calibration from official NTA percentiles.
-
-### 8. 7-Day Targeted Study Planner
-- Dynamically generated weekly revision schedule mapped directly to the student's weakest chapters and error logs.
-- Interactive task completion checkboxes with real-time weekly progress indicator.
-- 1-Click regeneration based on newly uploaded mock test data.
-
-### 9. Test History & PDF Export
-- Filterable and searchable table of all recorded tests.
-- Actions: Open Analysis, Compare Tests, Delete, and Print/Export PDF report.
+### 7. Test History & Print/PDF Export
+- Filterable chronological table of logged examinations with quick analysis navigation and Print / PDF export.
 
 ---
 
-## 🛠️ Technology Stack
+## 🛠️ Technology Stack (MERN)
 
-- **Frontend**: React 18, Vite, Tailwind CSS, Recharts, Lucide React, Axios, React Router v6.
-- **Backend**: Python 3.14 / 3.10+, FastAPI, SQLAlchemy ORM, SQLite (default for instant local run) / PostgreSQL (production), PyJWT, Bcrypt, Pandas, NumPy, pdfplumber, OpenCV, Pillow, OpenPyXL.
-- **Deployment**:
-  - Frontend: Vercel / Netlify
-  - Backend: Render / Railway / Docker
-  - Database: PostgreSQL / Supabase
+- **MongoDB & Mongoose**: Cloud MongoDB Atlas (`MONGODB_URI`), local `mongod` (`mongodb://127.0.0.1:27017/jee_analyzer`), plus automatic embedded local MongoDB fallback for zero-setup Windows execution.
+- **Express.js & Node.js**: Modular REST API (`/api/*`), JWT authentication (`bcryptjs` + `jsonwebtoken`), `multer` uploads, `csv-parse`, `xlsx`, `pdf-parse`, and `tesseract.js` OCR.
+- **React 18 + Vite**: Tailwind CSS, Recharts, Lucide React, Axios, React Router v6.
 
 ---
 
 ## 🚀 Quick Start & Local Execution
 
-### 1. Backend Setup & Run
+### 1-Click Windows Launch
+Double-click `Open_JEE_Analyzer.bat` in the root folder to automatically install any missing packages, build the React frontend if needed, launch the MERN server on `http://localhost:8000`, and open your browser.
 
-Open a terminal in the root directory:
+### Manual Local Development
 
+**Terminal 1 — Backend (Express + MongoDB):**
 ```bash
 cd backend
-
-# Install dependencies (if not already installed)
-pip install -r requirements.txt
-
-# Run seed script to populate demo account and 3 realistic tests (128 -> 154 -> 184 marks)
-python seed_data.py
-
-# Start FastAPI server on port 8000
-python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-Backend API will be accessible at `http://localhost:8000`.
-Interactive Swagger API documentation: `http://localhost:8000/docs`.
-
-### 2. Frontend Setup & Run
-
-In a second terminal:
-
-```bash
-cd frontend
-
-# Install dependencies (if not already installed)
 npm install
-
-# Start Vite dev server on port 5173
 npm run dev
 ```
+*(Optional: run `npm run seed:reset` to reset and re-seed the demo student data. Note: `server.js` automatically seeds the demo account on first run if missing.)*
 
-Open your browser at `http://localhost:5173`.
+**Terminal 2 — Frontend (React + Vite):**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Open `http://localhost:5173`.
 
 ---
 
 ## 🔑 Demo Account Credentials
 
-Use the pre-seeded account to immediately explore all 12 pages with realistic historical data:
-
 - **Email**: `demo@jeemain.ai`
 - **Password**: `password123`
-*(Or click the "Fill Pre-Seeded Demo Student Account" button on the login screen).*
+*(Or click "Fill Pre-Seeded Demo Student Account" on the login screen.)*
 
 ---
 
-## 📂 Pre-Loaded Sample Test Files for Uploading
-
-Test files formatted for immediate upload testing are available in `/sample_tests`:
-1. `allen_mock_test_result.csv` - Comprehensive 75-question mock test result.
-2. `resonance_test_result.xlsx` - Multi-sheet Excel scorecard workbook.
-3. `nta_jee_main_scorecard.pdf` - Multi-page simulated NTA scorecard report.
-4. `mock_scorecard_screenshot.png` - Scorecard image screenshot for OCR testing.
-
-*You can also click the 1-click test format buttons on the **Upload Test** page.*
-
----
-
-## 🌐 Simple Permanent Cloud Deployment (No Credit Card Needed)
+## 🌐 Deployment
 
 ### Option 1: Single-Project Vercel Services Deployment (Frontend + Backend Together)
-Deploy both **`frontend`** (Vite/React) and **`backend`** (FastAPI) inside **one single Vercel project** via [Vercel Services](https://vercel.com/docs/services):
-1. On Vercel -> **Add New Project** -> Import `spal73263-pixel/jee_main_test_analyze`.
-2. **Keep Root Directory as `./` (repository root)**.
-3. Root `vercel.json` defines both `frontend` (`root: "frontend"`) and `backend` (`root: "backend"`) services automatically, routing `/api/(.*)` and `/static/(.*)` to `backend` and `/(.*)` to `frontend`.
-4. Click **Deploy** (or test locally with `vercel dev`).
-*(Optional for permanent cloud DB across serverless cold starts: add a free PostgreSQL `DATABASE_URL` from Neon/Supabase in Vercel Environment Variables).*
+Root `vercel.json` configures **Vercel Services** (`backend` Express + `frontend` Vite) in one Vercel project:
+1. Import `spal73263-pixel/jee_main_test_analyze` on Vercel keeping **Root Directory** as `./`.
+2. Add Environment Variable `MONGODB_URI` (from a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster) and `JWT_SECRET`.
+3. Click **Deploy** (routes `/api/(.*)` and `/static/(.*)` to `backend`, and `/(.*)` to `frontend`).
 
-### Option 2: 1-Click Render Deployment (Frontend + Backend + Postgres Together)
-Click the link below to deploy the entire full-stack application to Render in one step:
+### Option 2: Docker Compose (MERN + MongoDB Container)
+```bash
+docker compose up --build
+```
+Open `http://localhost:8000`.
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/spal73263-pixel/jee_main_test_analyze)
-
-Or manually on [render.com](https://render.com):
-1. Click **New +** -> **Blueprint** (or **Web Service**).
-2. Connect GitHub repository `spal73263-pixel/jee_main_test_analyze`.
-3. Select **Apply** (automatically reads `render.yaml` & `Dockerfile` to deploy both React frontend and Python FastAPI backend together into one permanent URL).
-
-### Instant Windows Local Launch
-Double-click `Open_JEE_Analyzer.bat` in the project folder to launch the server and open `http://localhost:8000` automatically with zero terminal setup.
+### Option 3: Render Blueprint
+Connect `spal73263-pixel/jee_main_test_analyze` on Render using `render.yaml` (`Dockerfile`) and set `MONGODB_URI` to your MongoDB Atlas URI.

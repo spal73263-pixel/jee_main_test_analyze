@@ -3,10 +3,11 @@
   "services": {
     "backend": {
       "root": "backend",
-      "framework": "fastapi",
-      "entrypoint": "main:app",
+      "framework": "express",
+      "entrypoint": "server.js",
+      "installCommand": "npm install --omit=dev",
       "functions": {
-        "main.py": {
+        "server.js": {
           "maxDuration": 30
         }
       }

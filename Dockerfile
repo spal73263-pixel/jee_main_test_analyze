@@ -1,6 +1,6 @@
-# Multi-Stage Dockerfile for Unified Full-Stack Production Deployment
+# Multi-Stage Dockerfile for Unified MERN Full-Stack Production Deployment
 
-# Stage 1: Build the React Frontend
+# Stage 1: Build the React (Vite) Frontend
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
 
@@ -10,32 +10,25 @@ RUN npm install --no-audit --no-fund
 COPY frontend/ ./
 RUN npm run build
 
-# Stage 2: Production Python Backend with OpenCV & OCR support
-FROM python:3.11-slim
+# Stage 2: Production Node.js + Express Backend
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Install system dependencies for OpenCV and Tesseract OCR
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    tesseract-ocr \
-    libgl1 \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+# Install Backend Node dependencies (production only)
+COPY backend/package*.json ./backend/
+RUN cd ./backend && npm install --omit=dev --no-audit --no-fund
 
-# Install Python requirements
-COPY backend/requirements.txt ./backend/
-RUN pip install --no-cache-dir -r ./backend/requirements.txt
-
-# Copy backend application code
+# Copy Backend Application Code & Sample Files
 COPY backend/ ./backend/
 COPY sample_tests/ ./sample_tests/
 
-# Copy compiled frontend from Stage 1
+# Copy Compiled React Frontend from Stage 1
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 WORKDIR /app/backend
 
-# Expose default container port and launch server (main.py auto-creates tables & demo seed cleanly with retry)
+ENV NODE_ENV=production
 EXPOSE 8000
 
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["node", "server.js"]

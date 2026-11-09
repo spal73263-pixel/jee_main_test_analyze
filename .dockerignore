@@ -1,8 +1,7 @@
 .git
 **/node_modules
 frontend/dist
-backend/__pycache__
-backend/**/__pycache__
+backend/.mongodb-data
 backend/*.db
 backend/*.sqlite3
 backend/uploads/*
