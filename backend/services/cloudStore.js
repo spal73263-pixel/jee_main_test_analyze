@@ -33,7 +33,7 @@ function assertCloudConfigured() {
   const driver = detectStorageDriver();
   if (driver === 'unconfigured') {
     const err = new Error(
-      'Cloud sync database is not configured on Vercel yet. Connect Neon Postgres, Upstash Redis, or Vercel Blob in Vercel Dashboard -> Storage (or add MONGODB_URI in Settings -> Environment Variables) and Redeploy so Om Pal and Parents see the exact same live dashboard on every phone.'
+      'Cloud sync database is not configured on Vercel yet. Connect Neon Postgres / Upstash Redis in Vercel Dashboard -> Storage, OR add DATABASE_URL in Settings -> Environment Variables and Redeploy so Om Pal and Parents see the exact same live dashboard on every phone.'
     );
     err.status = 503;
     err.setup_required = true;

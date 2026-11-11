@@ -54,6 +54,10 @@ async function runTests() {
         'POSTGRES_URL',
         'POSTGRES_URL_NON_POOLING',
         'POSTGRES_PRISMA_URL',
+        'PGHOST',
+        'PGUSER',
+        'PGPASSWORD',
+        'PGDATABASE',
         'UPSTASH_REDIS_REST_URL',
         'UPSTASH_REDIS_REST_TOKEN',
         'KV_REST_API_URL',
@@ -99,6 +103,10 @@ async function runTests() {
         POSTGRES_URL: process.env.POSTGRES_URL,
         POSTGRES_URL_NON_POOLING: process.env.POSTGRES_URL_NON_POOLING,
         POSTGRES_PRISMA_URL: process.env.POSTGRES_PRISMA_URL,
+        PGHOST: process.env.PGHOST,
+        PGUSER: process.env.PGUSER,
+        PGPASSWORD: process.env.PGPASSWORD,
+        PGDATABASE: process.env.PGDATABASE,
         UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
         UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
         KV_REST_API_URL: process.env.KV_REST_API_URL,
@@ -116,6 +124,10 @@ async function runTests() {
         delete process.env.POSTGRES_URL;
         delete process.env.POSTGRES_URL_NON_POOLING;
         delete process.env.POSTGRES_PRISMA_URL;
+        delete process.env.PGHOST;
+        delete process.env.PGUSER;
+        delete process.env.PGPASSWORD;
+        delete process.env.PGDATABASE;
         delete process.env.UPSTASH_REDIS_REST_URL;
         delete process.env.UPSTASH_REDIS_REST_TOKEN;
         delete process.env.KV_REST_API_URL;
@@ -136,7 +148,28 @@ async function runTests() {
           vLogin.status === 503 && vLogin.body.setup_required === true,
           `Expected 503 setup_required on unconfigured Vercel deployment, got ${vLogin.status}`
         );
+
+        // Verify custom Vercel Storage prefix + quoted URL auto-detection
+        process.env.STORAGE_DATABASE_URL = '"postgresql://u:p@ep-demo-pooler.aws.neon.tech/neondb?sslmode=require"';
+        const vPrefixedHealth = await apiReq('/api/health');
+        assert(
+          vPrefixedHealth.body.storage_driver === 'postgres' && vPrefixedHealth.body.cloud_sync_ready === true,
+          'Expected quoted custom-prefixed Neon URL to resolve to postgres driver'
+        );
+        delete process.env.STORAGE_DATABASE_URL;
+
+        // Verify PG* fallback detection
+        process.env.PGHOST = 'ep-demo-pooler.aws.neon.tech';
+        process.env.PGUSER = 'neondb_owner';
+        process.env.PGPASSWORD = 'secret';
+        process.env.PGDATABASE = 'neondb';
+        const vPgVarsHealth = await apiReq('/api/health');
+        assert(
+          vPgVarsHealth.body.storage_driver === 'postgres' && vPgVarsHealth.body.cloud_sync_ready === true,
+          'Expected PGHOST/PGUSER/PGPASSWORD/PGDATABASE fallback to resolve to postgres driver'
+        );
       } finally {
+        delete process.env.STORAGE_DATABASE_URL;
         for (const [k, v] of Object.entries(savedEnv)) {
           if (v === undefined) delete process.env[k];
           else process.env[k] = v;

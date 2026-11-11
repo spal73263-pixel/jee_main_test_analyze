@@ -86,8 +86,10 @@ const Dashboard = () => {
           <div>
             <p className="font-bold text-amber-900">Cloud Sync Database Required for Cross-Phone Sharing</p>
             <p className="text-amber-800 mt-0.5">
-              Connect <strong>Upstash Redis</strong>, <strong>Neon Postgres</strong>, or <strong>Vercel Blob</strong> in{' '}
-              <strong>Vercel Dashboard &rarr; Storage</strong> (or add <code className="font-mono bg-amber-100 px-1 rounded">MONGODB_URI</code>), then Redeploy so Om Pal&apos;s updates appear on parents&apos; phones.
+              Connect <strong>Neon Postgres</strong> or <strong>Upstash Redis</strong> in{' '}
+              <strong>Vercel Dashboard &rarr; Storage</strong>, OR add{' '}
+              <code className="font-mono bg-amber-100 px-1 rounded">DATABASE_URL</code> (your Neon connection string)
+              in <strong>Settings &rarr; Environment Variables</strong>, then <strong>Redeploy</strong> so Om Pal&apos;s updates appear on parents&apos; phones.
             </p>
           </div>
         </div>

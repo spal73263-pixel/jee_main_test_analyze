@@ -57,9 +57,10 @@ const Login = () => {
                 <span>Cloud Sync Storage Setup Required on Vercel</span>
               </div>
               <p className="leading-relaxed">
-                To view Om Pal&apos;s dashboard across multiple phones, connect a free storage store in{' '}
-                <strong>Vercel Dashboard &rarr; Storage</strong> (Upstash Redis, Neon Postgres, or Vercel Blob) or add{' '}
-                <code className="font-mono bg-amber-100 px-1 rounded">MONGODB_URI</code> in Environment Variables, then Redeploy.
+                To view Om Pal&apos;s dashboard across multiple phones, connect <strong>Neon Postgres</strong> or{' '}
+                <strong>Upstash Redis</strong> in <strong>Vercel Dashboard &rarr; Storage</strong>, OR add{' '}
+                <code className="font-mono bg-amber-100 px-1 rounded">DATABASE_URL</code> (your Neon connection string)
+                in <strong>Settings &rarr; Environment Variables</strong>, then <strong>Redeploy</strong>.
               </p>
             </div>
           ) : cloudStatus?.loaded && cloudStatus?.cloud_sync_ready ? (

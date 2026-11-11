@@ -39,30 +39,93 @@ try {
   // Ignore on read-only build steps
 }
 
+function stripOuterQuotes(val) {
+  const s = String(val || '').trim();
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    return s.slice(1, -1).trim();
+  }
+  return s;
+}
+
+function isPostgresConnectionString(val) {
+  return /^postgres(?:ql)?:\/\//i.test(stripOuterQuotes(val));
+}
+
+function findPostgresUrl() {
+  const preferredKeys = [
+    'DATABASE_URL_POOLED',
+    'DATABASE_URL',
+    'NEON_DATABASE_URL',
+    'POSTGRES_URL',
+    'POSTGRES_PRISMA_URL',
+  ];
+  for (const key of preferredKeys) {
+    const cleaned = stripOuterQuotes(process.env[key]);
+    if (cleaned && isPostgresConnectionString(cleaned)) {
+      return cleaned;
+    }
+  }
+
+  // Fallback: detect Vercel Storage custom prefixes (e.g., STORAGE_DATABASE_URL, JEE_POSTGRES_URL)
+  const extraMatches = Object.entries(process.env)
+    .filter(([key, val]) => {
+      if (!key || /UNPOOLED|NON_POOLING|NO_SSL/i.test(key)) return false;
+      if (!/(?:DATABASE|POSTGRES|NEON|PG).*_URL$/i.test(key)) return false;
+      return isPostgresConnectionString(val);
+    })
+    .map(([, val]) => stripOuterQuotes(val));
+
+  if (extraMatches.length > 0) {
+    const pooled = extraMatches.find((u) => /-pooler\./i.test(u));
+    return pooled || extraMatches[0];
+  }
+
+  // Fallback: individual PG* variables injected by some Vercel Postgres presets
+  const pgHost = stripOuterQuotes(process.env.PGHOST);
+  const pgUser = stripOuterQuotes(process.env.PGUSER);
+  const pgPassword = stripOuterQuotes(process.env.PGPASSWORD);
+  const pgDatabase = stripOuterQuotes(process.env.PGDATABASE);
+  if (pgHost && pgUser && pgPassword && pgDatabase) {
+    return `postgresql://${encodeURIComponent(pgUser)}:${encodeURIComponent(pgPassword)}@${pgHost}/${pgDatabase}?sslmode=require`;
+  }
+
+  return '';
+}
+
+function findPostgresDirectUrl(fallbackUrl) {
+  const directKeys = ['DATABASE_URL_UNPOOLED', 'POSTGRES_URL_NON_POOLING'];
+  for (const key of directKeys) {
+    const cleaned = stripOuterQuotes(process.env[key]);
+    if (cleaned && isPostgresConnectionString(cleaned)) {
+      return cleaned;
+    }
+  }
+  const extraDirect = Object.entries(process.env)
+    .filter(([key, val]) => {
+      if (!key || !/(?:UNPOOLED|NON_POOLING)$/i.test(key)) return false;
+      return isPostgresConnectionString(val);
+    })
+    .map(([, val]) => stripOuterQuotes(val));
+
+  if (extraDirect.length > 0) {
+    return extraDirect[0];
+  }
+
+  return fallbackUrl || '';
+}
+
 function getStorageEnv() {
-  const mongodbUri = String(process.env.MONGODB_URI || process.env.MONGO_URL || '').trim();
-  const postgresUrl = String(
-    process.env.DATABASE_URL_POOLED ||
-      process.env.DATABASE_URL ||
-      process.env.NEON_DATABASE_URL ||
-      process.env.POSTGRES_URL ||
-      process.env.POSTGRES_PRISMA_URL ||
-      ''
-  ).trim();
-  const postgresDirectUrl = String(
-    process.env.DATABASE_URL_UNPOOLED ||
-      process.env.POSTGRES_URL_NON_POOLING ||
-      postgresUrl ||
-      ''
-  ).trim();
-  const redisRestUrl = String(
-    process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || ''
-  ).trim();
-  const redisRestToken = String(
-    process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || ''
-  ).trim();
-  const blobToken = String(process.env.BLOB_READ_WRITE_TOKEN || '').trim();
-  const blobStoreId = String(process.env.BLOB_STORE_ID || '').trim();
+  const mongodbUri = stripOuterQuotes(process.env.MONGODB_URI || process.env.MONGO_URL);
+  const postgresUrl = findPostgresUrl();
+  const postgresDirectUrl = findPostgresDirectUrl(postgresUrl);
+  const redisRestUrl = stripOuterQuotes(
+    process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL
+  );
+  const redisRestToken = stripOuterQuotes(
+    process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN
+  );
+  const blobToken = stripOuterQuotes(process.env.BLOB_READ_WRITE_TOKEN);
+  const blobStoreId = stripOuterQuotes(process.env.BLOB_STORE_ID);
 
   return {
     mongodbUri,
