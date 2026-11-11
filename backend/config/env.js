@@ -43,9 +43,16 @@ function getStorageEnv() {
   const mongodbUri = String(process.env.MONGODB_URI || process.env.MONGO_URL || '').trim();
   const postgresUrl = String(
     process.env.DATABASE_URL_POOLED ||
-      process.env.POSTGRES_URL ||
       process.env.DATABASE_URL ||
+      process.env.NEON_DATABASE_URL ||
+      process.env.POSTGRES_URL ||
       process.env.POSTGRES_PRISMA_URL ||
+      ''
+  ).trim();
+  const postgresDirectUrl = String(
+    process.env.DATABASE_URL_UNPOOLED ||
+      process.env.POSTGRES_URL_NON_POOLING ||
+      postgresUrl ||
       ''
   ).trim();
   const redisRestUrl = String(
@@ -60,6 +67,7 @@ function getStorageEnv() {
   return {
     mongodbUri,
     postgresUrl,
+    postgresDirectUrl,
     redisRestUrl,
     redisRestToken,
     blobToken,

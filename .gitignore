@@ -30,3 +30,4 @@ backend/.env
 # Uploads cache (keep directory structure)
 backend/uploads/*
 !backend/uploads/.gitkeep
+.neon

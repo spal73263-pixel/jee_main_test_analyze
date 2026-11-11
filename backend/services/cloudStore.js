@@ -224,35 +224,53 @@ function sanitizeMongoAccount(doc) {
 }
 
 // ===========================================================================
-// Driver 2: PostgreSQL (Neon Postgres / Prisma Postgres / Supabase / pg)
+// Driver 2: PostgreSQL (Neon Lakebase Postgres / Vercel Fluid Compute / pg)
 // ===========================================================================
 let pgPool = null;
 let pgLastUrl = null;
-let pgSchemaReady = false;
+let pgSchemaPromise = null;
 
-async function getPgPool() {
-  const { postgresUrl } = getStorageEnv();
-  if (!postgresUrl) {
-    throw new Error('Postgres URL is not set');
+function normalizePgConnectionString(rawUrl) {
+  const trimmed = String(rawUrl || '').trim();
+  const isLocalPg = /127\.0\.0\.1|localhost/.test(trimmed);
+  if (isLocalPg) {
+    return { connectionString: trimmed, useRelaxedSsl: false };
   }
 
-  if (!pgPool || pgLastUrl !== postgresUrl) {
-    pgLastUrl = postgresUrl;
-    pgSchemaReady = false;
+  let connectionString = trimmed;
+  if (
+    /[?&]sslmode=require(?=&|$)/i.test(connectionString) &&
+    !/uselibpqcompat=/i.test(connectionString)
+  ) {
+    connectionString = connectionString.replace(
+      /([?&])sslmode=require(?=&|$)/i,
+      '$1sslmode=verify-full'
+    );
+  }
+
+  const hasSslMode = /sslmode=/i.test(connectionString);
+  return { connectionString, useRelaxedSsl: !hasSslMode };
+}
+
+async function ensurePgSchema(runtimePool, rawDirectUrl, rawPooledUrl) {
+  const useSeparateDirectPool = rawDirectUrl && rawDirectUrl !== rawPooledUrl;
+  let schemaPool = runtimePool;
+  let createdTempPool = false;
+
+  if (useSeparateDirectPool) {
     const { Pool } = require('pg');
-    const isLocalPg = /127\.0\.0\.1|localhost/.test(postgresUrl);
-    const hasSslMode = /sslmode=/i.test(postgresUrl);
-    pgPool = new Pool({
-      connectionString: postgresUrl,
-      max: IS_VERCEL ? 3 : 10,
-      idleTimeoutMillis: 20000,
+    const norm = normalizePgConnectionString(rawDirectUrl);
+    schemaPool = new Pool({
+      connectionString: norm.connectionString,
+      max: 1,
       connectionTimeoutMillis: 8000,
-      ...(isLocalPg || hasSslMode ? {} : { ssl: { rejectUnauthorized: false } }),
+      ...(norm.useRelaxedSsl ? { ssl: { rejectUnauthorized: false } } : {}),
     });
+    createdTempPool = true;
   }
 
-  if (!pgSchemaReady) {
-    await pgPool.query(`
+  try {
+    await schemaPool.query(`
       CREATE TABLE IF NOT EXISTS jee_accounts (
         id TEXT PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
@@ -260,16 +278,66 @@ async function getPgPool() {
         password_hash TEXT NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
-      );
+      )
+    `);
+    await schemaPool.query(`
       CREATE TABLE IF NOT EXISTS jee_workspaces (
         user_id TEXT PRIMARY KEY,
         data TEXT NOT NULL,
         updated_at TEXT NOT NULL
-      );
+      )
     `);
-    pgSchemaReady = true;
+  } finally {
+    if (createdTempPool) {
+      await schemaPool.end().catch(() => {});
+    }
+  }
+}
+
+async function getPgPool() {
+  const { postgresUrl, postgresDirectUrl } = getStorageEnv();
+  if (!postgresUrl) {
+    throw new Error('Postgres URL is not set');
   }
 
+  const norm = normalizePgConnectionString(postgresUrl);
+
+  if (!pgPool || pgLastUrl !== norm.connectionString) {
+    pgLastUrl = norm.connectionString;
+    pgSchemaPromise = null;
+    const { Pool } = require('pg');
+    pgPool = new Pool({
+      connectionString: norm.connectionString,
+      max: IS_VERCEL ? 5 : 10,
+      idleTimeoutMillis: 20000,
+      connectionTimeoutMillis: 15000,
+      ...(norm.useRelaxedSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+    });
+
+    pgPool.on('error', (err) => {
+      console.error('Postgres idle pool notice:', err?.message || err);
+    });
+
+    if (IS_VERCEL) {
+      try {
+        const { attachDatabasePool } = require('@vercel/functions');
+        if (typeof attachDatabasePool === 'function') {
+          attachDatabasePool(pgPool);
+        }
+      } catch {
+        // Optional outside Vercel Fluid compute
+      }
+    }
+  }
+
+  if (!pgSchemaPromise) {
+    pgSchemaPromise = ensurePgSchema(pgPool, postgresDirectUrl, postgresUrl).catch((err) => {
+      pgSchemaPromise = null;
+      throw err;
+    });
+  }
+
+  await pgSchemaPromise;
   return pgPool;
 }
 
@@ -379,7 +447,7 @@ const postgresDriver = {
     }
     pgPool = null;
     pgLastUrl = null;
-    pgSchemaReady = false;
+    pgSchemaPromise = null;
   },
 };
 

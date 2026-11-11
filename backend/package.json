@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@vercel/blob": "^2.9.0",
+    "@vercel/functions": "^3.11.1",
     "cors": "^2.8.5",
     "csv-parse": "^5.6.0",
     "dotenv": "^16.4.7",

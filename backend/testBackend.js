@@ -43,6 +43,25 @@ async function runTests() {
     if (!baseUrl) {
       tempDbPath = path.join(os.tmpdir(), `jee_analyzer_e2e_${process.pid}_${Date.now()}.json`);
       process.env.LOCAL_DB_PATH = tempDbPath;
+      // Ensure dotenv (.env.local) never connects regression tests to production cloud DB
+      for (const k of [
+        'MONGODB_URI',
+        'MONGO_URL',
+        'DATABASE_URL',
+        'DATABASE_URL_POOLED',
+        'DATABASE_URL_UNPOOLED',
+        'NEON_DATABASE_URL',
+        'POSTGRES_URL',
+        'POSTGRES_URL_NON_POOLING',
+        'POSTGRES_PRISMA_URL',
+        'UPSTASH_REDIS_REST_URL',
+        'UPSTASH_REDIS_REST_TOKEN',
+        'KV_REST_API_URL',
+        'KV_REST_API_TOKEN',
+        'BLOB_READ_WRITE_TOKEN',
+      ]) {
+        process.env[k] = '';
+      }
 
       const app = require('./server');
       ({ closeCloudStore: closeCloudStoreFn } = require('./services/cloudStore'));
@@ -75,7 +94,10 @@ async function runTests() {
         MONGO_URL: process.env.MONGO_URL,
         DATABASE_URL: process.env.DATABASE_URL,
         DATABASE_URL_POOLED: process.env.DATABASE_URL_POOLED,
+        DATABASE_URL_UNPOOLED: process.env.DATABASE_URL_UNPOOLED,
+        NEON_DATABASE_URL: process.env.NEON_DATABASE_URL,
         POSTGRES_URL: process.env.POSTGRES_URL,
+        POSTGRES_URL_NON_POOLING: process.env.POSTGRES_URL_NON_POOLING,
         POSTGRES_PRISMA_URL: process.env.POSTGRES_PRISMA_URL,
         UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
         UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
@@ -89,7 +111,10 @@ async function runTests() {
         delete process.env.MONGO_URL;
         delete process.env.DATABASE_URL;
         delete process.env.DATABASE_URL_POOLED;
+        delete process.env.DATABASE_URL_UNPOOLED;
+        delete process.env.NEON_DATABASE_URL;
         delete process.env.POSTGRES_URL;
+        delete process.env.POSTGRES_URL_NON_POOLING;
         delete process.env.POSTGRES_PRISMA_URL;
         delete process.env.UPSTASH_REDIS_REST_URL;
         delete process.env.UPSTASH_REDIS_REST_TOKEN;
