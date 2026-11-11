@@ -14,20 +14,19 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { testsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useAutoRefresh } from '../utils/useAutoRefresh';
 
 const TestHistory = () => {
+  const { syncVersion } = useAuth();
   const [tests, setTests] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('All');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchTests();
-  }, [searchTerm, selectedType]);
-
-  const fetchTests = async () => {
-    setLoading(true);
+  const fetchTests = React.useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const params = {};
       if (searchTerm) params.search = searchTerm;
@@ -37,9 +36,15 @@ const TestHistory = () => {
     } catch (err) {
       console.error('Failed to fetch tests:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, [searchTerm, selectedType]);
+
+  useEffect(() => {
+    fetchTests({ silent: syncVersion > 0 });
+  }, [fetchTests, syncVersion]);
+
+  useAutoRefresh(() => fetchTests({ silent: true }));
 
   const handleDelete = async (testId, testName) => {
     if (!window.confirm(`Are you sure you want to permanently delete '${testName}'?`)) {

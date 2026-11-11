@@ -1,5 +1,5 @@
 @echo off
-title JEE Main & HSC Test Analyzer (Web Storage Mode)
+title JEE Main & HSC Test Analyzer (Cross-Device Cloud Sync)
 cd /d "%~dp0"
 
 if not exist "frontend\dist\index.html" (

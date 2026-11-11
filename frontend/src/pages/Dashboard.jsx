@@ -29,6 +29,7 @@ import {
 } from 'recharts';
 import { dashboardAPI, hscRevisionAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useAutoRefresh } from '../utils/useAutoRefresh';
 
 const PIE_COLORS = ['#10b981', '#f43f5e', '#cbd5e1'];
 
@@ -36,16 +37,12 @@ const Dashboard = () => {
   const [data, setData] = useState(null);
   const [hscCount, setHscCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, cloudStatus, syncVersion } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
-
-  const fetchDashboard = async () => {
+  const fetchDashboard = React.useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [res, hscRes] = await Promise.all([
         dashboardAPI.getOverview(),
         hscRevisionAPI.getChapters().catch(() => ({ data: [] })),
@@ -55,9 +52,15 @@ const Dashboard = () => {
     } catch (err) {
       console.error("Dashboard fetch error:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchDashboard({ silent: syncVersion > 0 });
+  }, [fetchDashboard, syncVersion]);
+
+  useAutoRefresh(() => fetchDashboard({ silent: true }));
 
   if (loading) {
     return (
@@ -77,6 +80,19 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+      {cloudStatus?.loaded && cloudStatus?.requires_cloud_config && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold text-amber-900">Cloud Sync Database Required for Cross-Phone Sharing</p>
+            <p className="text-amber-800 mt-0.5">
+              Connect <strong>Upstash Redis</strong>, <strong>Neon Postgres</strong>, or <strong>Vercel Blob</strong> in{' '}
+              <strong>Vercel Dashboard &rarr; Storage</strong> (or add <code className="font-mono bg-amber-100 px-1 rounded">MONGODB_URI</code>), then Redeploy so Om Pal&apos;s updates appear on parents&apos; phones.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Welcome Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 sm:p-8 text-white shadow-md">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">

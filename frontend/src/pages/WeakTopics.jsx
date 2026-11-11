@@ -18,8 +18,11 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { dashboardAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useAutoRefresh } from '../utils/useAutoRefresh';
 
 const WeakTopics = () => {
+  const { syncVersion } = useAuth();
   const [data, setData] = useState(null);
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,13 +37,9 @@ const WeakTopics = () => {
   const [notes, setNotes] = useState('');
   const [savingReminder, setSavingReminder] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [weakRes, remRes] = await Promise.all([
         dashboardAPI.getWeakTopics(),
         dashboardAPI.getReminders()
@@ -50,9 +49,15 @@ const WeakTopics = () => {
     } catch (err) {
       console.error('Failed to fetch weak topics or reminders:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData({ silent: syncVersion > 0 });
+  }, [fetchData, syncVersion]);
+
+  useAutoRefresh(() => fetchData({ silent: true }));
 
   const handleAddReminder = async (e) => {
     e.preventDefault();

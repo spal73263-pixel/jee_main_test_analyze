@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, Key, Mail, Sparkles, AlertCircle } from 'lucide-react';
+import { LogIn, Key, Mail, Sparkles, AlertCircle, Cloud, CloudOff } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, cloudStatus } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -30,6 +30,8 @@ const Login = () => {
     setPassword('password123');
   };
 
+  const needsCloudSetup = cloudStatus?.loaded && cloudStatus?.requires_cloud_config;
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -48,6 +50,25 @@ const Login = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
         <div className="bg-white py-8 px-6 shadow-sm border border-slate-200/80 rounded-2xl sm:px-10">
+          {needsCloudSetup ? (
+            <div className="mb-5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-amber-800">
+                <CloudOff className="w-4 h-4 shrink-0 text-amber-600" />
+                <span>Cloud Sync Storage Setup Required on Vercel</span>
+              </div>
+              <p className="leading-relaxed">
+                To view Om Pal&apos;s dashboard across multiple phones, connect a free storage store in{' '}
+                <strong>Vercel Dashboard &rarr; Storage</strong> (Upstash Redis, Neon Postgres, or Vercel Blob) or add{' '}
+                <code className="font-mono bg-amber-100 px-1 rounded">MONGODB_URI</code> in Environment Variables, then Redeploy.
+              </p>
+            </div>
+          ) : cloudStatus?.loaded && cloudStatus?.cloud_sync_ready ? (
+            <div className="mb-5 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] font-semibold flex items-center justify-center gap-1.5">
+              <Cloud className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Multi-Phone Account Sync Active &mdash; Same account opens the same live dashboard</span>
+            </div>
+          ) : null}
+
           {error && (
             <div className="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -112,7 +133,7 @@ const Login = () => {
               <span>Quick Fill Om Pal Account</span>
             </button>
             <p className="text-[11px] text-slate-400 text-center mt-2">
-              demo@jeemain.ai • password123 (Clean account — enter your own tests & plans)
+              demo@jeemain.ai • password123 (Sign in on any phone to view synced progress)
             </p>
           </div>
 

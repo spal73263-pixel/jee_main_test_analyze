@@ -11,6 +11,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { hscRevisionAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useAutoRefresh } from '../utils/useAutoRefresh';
 
 const HSC_SUBJECTS = [
   {
@@ -56,6 +58,7 @@ const HSC_SUBJECTS = [
 ];
 
 const HSCRevision = () => {
+  const { syncVersion } = useAuth();
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -70,21 +73,23 @@ const HSCRevision = () => {
   const [filterSubject, setFilterSubject] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    fetchChapters();
-  }, []);
-
-  const fetchChapters = async () => {
-    setLoading(true);
+  const fetchChapters = React.useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const res = await hscRevisionAPI.getChapters();
       setChapters(res.data || []);
     } catch (err) {
       console.error('Failed to load HSC revisions:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchChapters({ silent: syncVersion > 0 });
+  }, [fetchChapters, syncVersion]);
+
+  useAutoRefresh(() => fetchChapters({ silent: true }));
 
   const handleAddChapter = async (e) => {
     e.preventDefault();
@@ -224,7 +229,7 @@ const HSCRevision = () => {
             <PlusCircle className="w-4 h-4 text-indigo-600" />
             <span>Add Completed Chapter Revision</span>
           </h2>
-          <span className="text-[11px] font-medium text-slate-400">Saved on this web page</span>
+          <span className="text-[11px] font-medium text-slate-400">Synced across devices</span>
         </div>
 
         {formError && (

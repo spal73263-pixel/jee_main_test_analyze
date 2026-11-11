@@ -23,35 +23,22 @@ import {
   CartesianGrid
 } from 'recharts';
 import { testsAPI, predictionsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useAutoRefresh } from '../utils/useAutoRefresh';
 
 const TestComparison = () => {
+  const { syncVersion } = useAuth();
   const navigate = useNavigate();
   const [allTests, setAllTests] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [comparison, setComparison] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchTests();
-  }, []);
-
-  const fetchTests = async () => {
-    try {
-      const res = await testsAPI.getTests();
-      setAllTests(res.data);
-      if (res.data.length >= 2) {
-        // Select first 2 or 3 tests by default
-        const initIds = res.data.slice(-3).map(t => t.id);
-        setSelectedIds(initIds);
-        compareSelected(initIds);
-      }
-    } catch (err) {
-      console.error('Failed to load tests:', err);
+  const compareSelected = React.useCallback(async (ids) => {
+    if (ids.length < 2) {
+      setComparison(null);
+      return;
     }
-  };
-
-  const compareSelected = async (ids) => {
-    if (ids.length < 2) return;
     setLoading(true);
     try {
       const res = await predictionsAPI.compareTests({ test_ids: ids });
@@ -61,7 +48,34 @@ const TestComparison = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const fetchTests = React.useCallback(async () => {
+    try {
+      const res = await testsAPI.getTests();
+      const list = res.data || [];
+      setAllTests(list);
+      if (list.length >= 2) {
+        setSelectedIds(prev => {
+          const validPrev = prev.filter(id => list.some(t => t.id === id));
+          const nextIds = validPrev.length >= 2 ? validPrev : list.slice(-3).map(t => t.id);
+          compareSelected(nextIds);
+          return nextIds;
+        });
+      } else {
+        setSelectedIds([]);
+        setComparison(null);
+      }
+    } catch (err) {
+      console.error('Failed to load tests:', err);
+    }
+  }, [compareSelected]);
+
+  useEffect(() => {
+    fetchTests();
+  }, [fetchTests, syncVersion]);
+
+  useAutoRefresh(fetchTests);
 
   const handleToggleTest = (id) => {
     let next;

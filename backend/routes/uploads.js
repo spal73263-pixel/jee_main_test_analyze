@@ -5,6 +5,9 @@ const crypto = require('crypto');
 const multer = require('multer');
 const { UPLOAD_DIR } = require('../config/env');
 const { parseUploadedFile } = require('../services/resultParser');
+const cloudStore = require('../services/cloudStore');
+const { requireAuth } = require('../middleware/auth');
+const workspaceService = require('../services/workspaceService');
 
 const router = express.Router();
 
@@ -92,6 +95,17 @@ router.post('/process', (req, res) => {
       fs.promises.unlink(filePath).catch(() => {});
     }
   });
+});
+
+router.post('/confirm', requireAuth, async (req, res, next) => {
+  try {
+    const saved = await cloudStore.mutateWorkspace(req.userId, (ws) =>
+      workspaceService.confirmTest(req.userId, ws, req.body || {})
+    );
+    return res.status(201).json(saved);
+  } catch (err) {
+    return next(err);
+  }
 });
 
 module.exports = router;

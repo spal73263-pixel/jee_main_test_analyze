@@ -44,7 +44,7 @@ const ProfileSettings = () => {
       <div>
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Profile & Settings</h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Manage your student account details saved on this web page.
+          Manage your student account details synced across your devices.
         </p>
       </div>
 

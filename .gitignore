@@ -11,9 +11,11 @@ build/
 .env.test.local
 .env.production.local
 
-# Local scratch artifacts
+# Local scratch artifacts & local JSON store
 *.db
 *.sqlite3
+backend/.cloud-db.json
+*.tmp
 
 # IDE
 .vscode/

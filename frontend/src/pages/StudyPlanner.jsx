@@ -20,6 +20,8 @@ import {
   Filter
 } from 'lucide-react';
 import { plannerAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useAutoRefresh } from '../utils/useAutoRefresh';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const SUBJECTS = [
@@ -33,6 +35,7 @@ const SUBJECTS = [
 const EXAM_TYPES = ['JEE Main', 'JEE Advanced', 'Board Exam Class 12th'];
 
 const StudyPlanner = () => {
+  const { syncVersion } = useAuth();
   // Navigation / active sub-view
   const [activeTab, setActiveTab] = useState('weekly_study'); // 'weekly_study' | 'mock_tests'
   const [selectedDayFilter, setSelectedDayFilter] = useState('All');
@@ -72,12 +75,59 @@ const StudyPlanner = () => {
   const [notificationPermission, setNotificationPermission] = useState(
     typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
   );
-  const [notificationAlertSent, setNotificationAlertSent] = useState(false);
+  const notificationAlertSentRef = React.useRef(false);
+
+  // Check if any test is due in the next 24-48 hours and trigger browser notification
+  const checkUpcomingTestsNotification = React.useCallback((tests) => {
+    if (notificationAlertSentRef.current || !('Notification' in window) || Notification.permission !== 'granted') return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+    const urgentTest = tests.find(t => !t.is_completed && (t.scheduled_date === today || t.scheduled_date === tomorrow));
+    if (urgentTest) {
+      new Notification(`🚨 Upcoming Mock Test: ${urgentTest.test_title}`, {
+        body: `${urgentTest.exam_type} is scheduled for ${urgentTest.scheduled_date === today ? 'TODAY' : 'TOMORROW'} at ${urgentTest.scheduled_time}! Prepare your station.`,
+        icon: '/favicon.ico'
+      });
+      notificationAlertSentRef.current = true;
+    }
+  }, []);
+
+  const fetchPlan = React.useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    try {
+      const res = await plannerAPI.getPlan();
+      setPlan(res.data);
+    } catch (err) {
+      console.error('Failed to load study plan:', err);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, []);
+
+  const fetchScheduledTests = React.useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoadingTests(true);
+    try {
+      const res = await plannerAPI.getScheduledTests();
+      setScheduledTests(res.data || []);
+      checkUpcomingTestsNotification(res.data || []);
+    } catch (err) {
+      console.error('Failed to load scheduled tests:', err);
+    } finally {
+      if (!silent) setLoadingTests(false);
+    }
+  }, [checkUpcomingTestsNotification]);
 
   useEffect(() => {
-    fetchPlan();
-    fetchScheduledTests();
-  }, []);
+    fetchPlan({ silent: syncVersion > 0 });
+    fetchScheduledTests({ silent: syncVersion > 0 });
+  }, [fetchPlan, fetchScheduledTests, syncVersion]);
+
+  useAutoRefresh(() => {
+    fetchPlan({ silent: true });
+    fetchScheduledTests({ silent: true });
+  });
 
   // Request browser notifications
   const requestNotificationPermission = async () => {
@@ -108,48 +158,6 @@ const StudyPlanner = () => {
       });
     } else {
       requestNotificationPermission();
-    }
-  };
-
-  const fetchPlan = async () => {
-    setLoading(true);
-    try {
-      const res = await plannerAPI.getPlan();
-      setPlan(res.data);
-    } catch (err) {
-      console.error('Failed to load study plan:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchScheduledTests = async () => {
-    setLoadingTests(true);
-    try {
-      const res = await plannerAPI.getScheduledTests();
-      setScheduledTests(res.data || []);
-      checkUpcomingTestsNotification(res.data || []);
-    } catch (err) {
-      console.error('Failed to load scheduled tests:', err);
-    } finally {
-      setLoadingTests(false);
-    }
-  };
-
-  // Check if any test is due in the next 24-48 hours and trigger browser notification
-  const checkUpcomingTestsNotification = (tests) => {
-    if (notificationAlertSent || !('Notification' in window) || Notification.permission !== 'granted') return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-
-    const urgentTest = tests.find(t => !t.is_completed && (t.scheduled_date === today || t.scheduled_date === tomorrow));
-    if (urgentTest) {
-      new Notification(`🚨 Upcoming Mock Test: ${urgentTest.test_title}`, {
-        body: `${urgentTest.exam_type} is scheduled for ${urgentTest.scheduled_date === today ? 'TODAY' : 'TOMORROW'} at ${urgentTest.scheduled_time}! Prepare your station.`,
-        icon: '/favicon.ico'
-      });
-      setNotificationAlertSent(true);
     }
   };
 

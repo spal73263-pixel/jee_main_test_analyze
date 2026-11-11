@@ -12,6 +12,7 @@ import {
   Settings,
   X
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -26,6 +27,10 @@ const navItems = [
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {
+  const { cloudStatus } = useAuth();
+  const isCloud = cloudStatus?.cross_device_sync === 'cloud';
+  const isLocalNet = cloudStatus?.cross_device_sync === 'local-network';
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -96,15 +101,33 @@ const Sidebar = ({ isOpen, onClose }) => {
           })}
         </div>
 
-        {/* Footer Browser Storage Status Pill */}
+        {/* Footer Cloud Sync Status Pill */}
         <div className="p-4 border-t border-slate-100 bg-slate-50/60">
           <div className="rounded-xl bg-white p-3 border border-slate-200/80 shadow-xs">
             <div className="flex items-center justify-between text-xs text-slate-600 font-semibold mb-1">
               <span>JEE + HSC Portal</span>
-              <span className="text-emerald-600 font-bold">Saved Locally</span>
+              <span
+                className={`font-bold ${
+                  cloudStatus?.requires_cloud_config ? 'text-amber-600' : 'text-emerald-600'
+                }`}
+              >
+                {cloudStatus?.requires_cloud_config
+                  ? 'DB Needed'
+                  : isCloud
+                  ? 'Cloud Synced'
+                  : isLocalNet
+                  ? 'Server Synced'
+                  : 'Syncing'}
+              </span>
             </div>
             <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-              <span>Zero external database</span>
+              <span>
+                {cloudStatus?.requires_cloud_config
+                  ? 'Attach Vercel Storage'
+                  : isCloud
+                  ? 'Multi-phone live sync'
+                  : 'Shared backend store'}
+              </span>
               <span>Private</span>
             </div>
           </div>

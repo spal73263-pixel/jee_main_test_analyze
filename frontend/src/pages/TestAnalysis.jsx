@@ -19,6 +19,8 @@ import {
   CheckSquare
 } from 'lucide-react';
 import { testsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useAutoRefresh } from '../utils/useAutoRefresh';
 
 const EXAM_TYPES = [
   { id: 'All', label: 'All Examinations', badge: 'All Tests' },
@@ -28,6 +30,7 @@ const EXAM_TYPES = [
 ];
 
 const TestAnalysis = () => {
+  const { syncVersion } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const testIdParam = searchParams.get('test_id');
 
@@ -42,41 +45,50 @@ const TestAnalysis = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [difficultyFilter, setDifficultyFilter] = useState('All');
 
-  useEffect(() => {
-    fetchTestList();
-  }, []);
-
-  useEffect(() => {
-    if (selectedTestId) {
-      fetchTestDetail(selectedTestId);
-    }
-  }, [selectedTestId]);
-
-  const fetchTestList = async () => {
-    try {
-      const res = await testsAPI.getTests();
-      setTests(res.data);
-      if (res.data.length > 0 && !selectedTestId) {
-        setSelectedTestId(res.data[0].id);
-      }
-    } catch (err) {
-      console.error('Failed to fetch tests:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchTestDetail = async (id) => {
-    setLoading(true);
+  const fetchTestDetail = React.useCallback(async (id, { silent = false } = {}) => {
+    if (!id) return;
+    if (!silent) setLoading(true);
     try {
       const res = await testsAPI.getTestDetail(id);
       setTestDetail(res.data);
     } catch (err) {
       console.error('Failed to fetch test detail:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, []);
+
+  const fetchTestList = React.useCallback(async ({ silent = false } = {}) => {
+    try {
+      const res = await testsAPI.getTests();
+      const list = res.data || [];
+      setTests(list);
+      if (list.length === 0) {
+        setSelectedTestId('');
+        setTestDetail(null);
+      } else if (!selectedTestId || !list.some(t => t.id === selectedTestId)) {
+        setSelectedTestId(list[0].id);
+      } else if (silent) {
+        fetchTestDetail(selectedTestId, { silent: true });
+      }
+    } catch (err) {
+      console.error('Failed to fetch tests:', err);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [selectedTestId, fetchTestDetail]);
+
+  useEffect(() => {
+    fetchTestList({ silent: syncVersion > 0 });
+  }, [fetchTestList, syncVersion]);
+
+  useEffect(() => {
+    if (selectedTestId) {
+      fetchTestDetail(selectedTestId);
+    }
+  }, [selectedTestId, fetchTestDetail]);
+
+  useAutoRefresh(() => fetchTestList({ silent: true }));
 
   const handleSelectExamType = (type) => {
     setSelectedExamType(type);
